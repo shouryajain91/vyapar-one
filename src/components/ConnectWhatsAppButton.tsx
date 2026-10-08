@@ -86,51 +86,61 @@ export function ConnectWhatsAppButton({ clientId }: { clientId: string }) {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
+  const finishSignup = useCallback(
+    async (response: FacebookLoginResponse) => {
+      const code = response.authResponse?.code;
+      if (!code) {
+        setStatus("error");
+        return;
+      }
+
+      const stored = window.sessionStorage.getItem("wa_signup_data");
+      const signupData: SignupData = stored ? JSON.parse(stored) : {};
+
+      if (!signupData.waba_id || !signupData.phone_number_id) {
+        console.error("Missing waba_id/phone_number_id from signup flow");
+        setStatus("error");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/onboarding/embedded-signup-callback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            client_id: clientId,
+            code,
+            waba_id: signupData.waba_id,
+            phone_number_id: signupData.phone_number_id,
+          }),
+        });
+        if (res.ok) {
+          setStatus("connected");
+          window.sessionStorage.removeItem("wa_signup_data");
+        } else {
+          setStatus("error");
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus("error");
+      }
+    },
+    [clientId]
+  );
+
   const handleConnect = useCallback(() => {
     if (!window.FB) return;
     setStatus("connecting");
 
+    // IMPORTANT: this callback must be a plain (non-async) function.
+    // The Facebook SDK does a strict typeof/constructor check on the
+    // login callback and silently rejects an async function (its
+    // runtime type is AsyncFunction, not Function), which causes
+    // FB.login to throw before the popup ever opens. So we hand it a
+    // synchronous wrapper and fire off the async work inside.
     window.FB.login(
-      async (response) => {
-        const code = response.authResponse?.code;
-        if (!code) {
-          setStatus("error");
-          return;
-        }
-
-        const stored = window.sessionStorage.getItem("wa_signup_data");
-        const signupData: SignupData = stored ? JSON.parse(stored) : {};
-
-        if (!signupData.waba_id || !signupData.phone_number_id) {
-          console.error("Missing waba_id/phone_number_id from signup flow");
-          setStatus("error");
-          return;
-        }
-
-        try {
-          const res = await fetch(
-            "/api/onboarding/embedded-signup-callback",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                client_id: clientId,
-                code,
-                waba_id: signupData.waba_id,
-                phone_number_id: signupData.phone_number_id,
-              }),
-            }
-          );
-          if (res.ok) {
-            setStatus("connected");
-            window.sessionStorage.removeItem("wa_signup_data");
-          } else {
-            setStatus("error");
-          }
-        } catch (err) {
-          console.error(err);
-          setStatus("error");
-        }
+      function (response) {
+        void finishSignup(response);
       },
       {
         config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID!,
@@ -139,7 +149,7 @@ export function ConnectWhatsAppButton({ clientId }: { clientId: string }) {
         extras: { setup: {} },
       }
     );
-  }, [clientId]);
+  }, [finishSignup]);
 
   return (
     <div>
