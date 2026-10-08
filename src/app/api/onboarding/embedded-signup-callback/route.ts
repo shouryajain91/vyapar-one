@@ -79,6 +79,30 @@ export async function POST(req: NextRequest) {
     console.warn("Phone number register call failed (may be benign):", err);
   }
 
+  // Subscribe our app to THIS WABA's webhook events. The app-level webhook
+  // URL/verify-token you configure in the Meta Dashboard only tells Meta
+  // where to send events for WABAs that have subscribed your app — it does
+  // nothing on its own. Without this call, you'd register the number fine
+  // but never actually receive incoming messages or status updates for it.
+  try {
+    const subRes = await fetch(
+      `https://graph.facebook.com/${GRAPH_VERSION}/${waba_id}/subscribed_apps`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const subData = await subRes.json();
+    if (!subRes.ok) {
+      console.error("Failed to subscribe app to WABA webhooks:", subData);
+    }
+  } catch (err) {
+    console.error("subscribed_apps call failed:", err);
+  }
+
   const db = supabaseAdmin();
   const { error: upsertError } = await db
     .from("whatsapp_accounts")
