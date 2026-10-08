@@ -1,3 +1,5 @@
+export const instant = false;
+
 import { signupAction } from "./actions";
 
 export default async function SignupPage({

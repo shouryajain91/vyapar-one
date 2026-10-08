@@ -1,3 +1,5 @@
+export const instant = false;
+
 import { getCurrentClient } from "@/lib/current-client";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { SendMessageForm } from "@/components/SendMessageForm";
