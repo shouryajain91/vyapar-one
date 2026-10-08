@@ -1,5 +1,3 @@
-export const instant = false;
-
 import { loginAction } from "./actions";
 
 export default async function LoginPage({

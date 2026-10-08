@@ -1,5 +1,3 @@
-export const instant = false;
-
 import { getCurrentClient } from "@/lib/current-client";
 import { ConnectWhatsAppButton } from "@/components/ConnectWhatsAppButton";
 import Link from "next/link";
