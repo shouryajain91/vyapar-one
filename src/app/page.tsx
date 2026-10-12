@@ -33,10 +33,12 @@ function PrimaryButton({
   href,
   size = "lg",
   children,
+  className,
 }: {
   href: string;
   size?: "lg" | "sm";
   children: React.ReactNode;
+  className?: string;
 }) {
   const style: CSSProperties =
     size === "lg"
@@ -53,6 +55,7 @@ function PrimaryButton({
   return (
     <a
       href={href}
+      className={className}
       style={{
         ...style,
         display: "inline-flex",
@@ -177,8 +180,39 @@ const journeySteps = [
 
 export default function HomePage() {
   return (
-    <div style={{ minHeight: "100vh", background: BG, position: "relative", overflow: "hidden", color: BODY, fontFamily: "Mukta, sans-serif" }}>
+    <div className="vp-home" style={{ minHeight: "100vh", background: BG, position: "relative", overflow: "hidden", color: BODY, fontFamily: "Mukta, sans-serif" }}>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
+      <style>{`
+        .vp-home { width: 100%; max-width: 100vw; }
+        .vp-home * { box-sizing: border-box; }
+        .vp-hero-title { font-size: clamp(34px, 7.5vw, 64px); }
+        .vp-section-title { font-size: clamp(26px, 5vw, 40px); }
+        .vp-hero-art { padding: 0 0 40px 40px; }
+        .vp-hero-art-img { height: 520px; }
+        .vp-hero-badge { right: -12px; top: 24px; }
+        .vp-demo-panel { padding: 52px; }
+        @media (max-width: 760px) {
+          .vp-nav-links { display: none !important; }
+          .vp-portal-label { display: none !important; }
+          .vp-header-inner { padding: 0 16px !important; gap: 10px !important; }
+        }
+        @media (max-width: 640px) {
+          .vp-hero-art { padding: 0; }
+          .vp-hero-art-img { height: 320px; border-radius: 16px; }
+          .vp-hero-badge { right: 10px; top: 14px; padding: 8px 12px !important; }
+          .vp-demo-panel { padding: 24px !important; border-radius: 16px !important; }
+          .vp-chat-panel { width: 92% !important; padding: 12px !important; font-size: 13px !important; }
+        }
+        .vp-cta-short { display: none; }
+        @media (max-width: 480px) {
+          .vp-logo { font-size: 18px !important; gap: 6px !important; }
+          .vp-logo img { width: 28px !important; height: 28px !important; }
+          .vp-portal-link { padding: 0 9px !important; }
+          .vp-cta-button { font-size: 13px !important; padding: 0 12px !important; }
+          .vp-cta-full { display: none; }
+          .vp-cta-short { display: inline; }
+        }
+      `}</style>
 
       {/* Background grid + glow */}
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 760, backgroundImage: "linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px)", backgroundSize: "48px 48px", WebkitMaskImage: "linear-gradient(#000 30%,transparent)", maskImage: "linear-gradient(#000 30%,transparent)" }} />
@@ -186,27 +220,31 @@ export default function HomePage() {
 
       {/* Header */}
       <header style={{ position: "sticky", top: 0, zIndex: 10, background: "rgba(12,20,23,.85)", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" }}>
+        <div className="vp-header-inner" style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div className="vp-logo" style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px", flex: "none" }}>
             <img src="/app-icon.png" alt="Vyapar One" style={{ width: 36, height: 36, borderRadius: 8 }} />
             vyapar<span style={{ color: AMBER }}>·</span>one
           </div>
-          <nav style={{ display: "flex", gap: 28, fontWeight: 600 }}>
+          <nav className="vp-nav-links" style={{ display: "flex", gap: 28, fontWeight: 600 }}>
             <a href="#services" style={{ color: "#B6C2C7" }}>Services</a>
             <a href="#demo" style={{ color: "#B6C2C7" }}>Contact</a>
           </nav>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Link
               href="/login"
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#fff", fontWeight: 700, border: "1px solid rgba(255,255,255,.25)", borderRadius: 8, height: 34, padding: "0 14px" }}
+              className="vp-portal-link"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#fff", fontWeight: 700, border: "1px solid rgba(255,255,255,.25)", borderRadius: 8, height: 34, padding: "0 14px", whiteSpace: "nowrap" }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}>
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              Customer Portal
+              <span className="vp-portal-label">Customer Portal</span>
             </Link>
-            <PrimaryButton href="#demo" size="sm">Book a Free Demo</PrimaryButton>
+            <PrimaryButton href="#demo" size="sm" className="vp-cta-button">
+              <span className="vp-cta-full">Book a Free Demo</span>
+              <span className="vp-cta-short">Demo</span>
+            </PrimaryButton>
           </div>
         </div>
       </header>
@@ -219,10 +257,10 @@ export default function HomePage() {
               <span style={{ width: 7, height: 7, borderRadius: "50%", background: TEAL }} />
               छोटे व्यापार, बड़ी पहचान
             </div>
-            <h1 style={{ fontSize: 64, lineHeight: 1.02, fontWeight: 800, letterSpacing: "-2px", margin: "22px 0 18px", color: "#fff" }}>
+            <h1 className="vp-hero-title" style={{ lineHeight: 1.05, fontWeight: 800, letterSpacing: "-1.5px", margin: "22px 0 18px", color: "#fff" }}>
               Run your business <span style={{ color: TEAL }}>on autopilot.</span>
             </h1>
-            <p style={{ fontSize: 20, lineHeight: 1.55, color: MUTED, margin: "0 0 30px", maxWidth: 520 }}>
+            <p style={{ fontSize: "clamp(16px, 3.5vw, 20px)", lineHeight: 1.55, color: MUTED, margin: "0 0 30px", maxWidth: 520 }}>
               A website, WhatsApp conversations and a calling bot, set up for you. Pick one, or use all three.
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -232,11 +270,11 @@ export default function HomePage() {
               </a>
             </div>
           </div>
-          <div style={{ position: "relative", padding: "0 0 40px 40px" }}>
-            <div style={{ height: 520, borderRadius: 24, overflow: "hidden", border: "1px solid rgba(255,255,255,.15)" }}>
+          <div className="vp-hero-art" style={{ position: "relative" }}>
+            <div className="vp-hero-art-img" style={{ borderRadius: 24, overflow: "hidden", border: "1px solid rgba(255,255,255,.15)" }}>
               <img src="/images/hero-whatsapp.webp" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
             </div>
-            <div style={{ position: "absolute", top: 24, right: -12, display: "flex", alignItems: "center", gap: 10, background: "#fff", color: "#161A1D", borderRadius: 14, padding: "12px 16px", boxShadow: "0 16px 40px rgba(0,0,0,.45)" }}>
+            <div className="vp-hero-badge" style={{ position: "absolute", display: "flex", alignItems: "center", gap: 10, background: "#fff", color: "#161A1D", borderRadius: 14, padding: "12px 16px", boxShadow: "0 16px 40px rgba(0,0,0,.45)" }}>
               <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#E3F7EA", color: "#00A848", display: "grid", placeItems: "center" }}>
                 <CheckIcon color="#00A848" />
               </div>
@@ -245,7 +283,7 @@ export default function HomePage() {
                 <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontWeight: 600, fontSize: 18 }}>₹1,640</div>
               </div>
             </div>
-            <div style={{ position: "absolute", left: 0, bottom: 0, width: "78%", background: "rgba(12,20,23,.88)", backdropFilter: "blur(14px)", border: "1px solid rgba(255,255,255,.14)", borderRadius: 16, padding: 16, boxShadow: "0 24px 60px rgba(0,0,0,.5)", display: "flex", flexDirection: "column", gap: 10, fontSize: 15 }}>
+            <div className="vp-chat-panel" style={{ position: "absolute", left: 0, bottom: 0, width: "78%", background: "rgba(12,20,23,.88)", backdropFilter: "blur(14px)", border: "1px solid rgba(255,255,255,.14)", borderRadius: 16, padding: 16, boxShadow: "0 24px 60px rgba(0,0,0,.5)", display: "flex", flexDirection: "column", gap: 10, fontSize: 15 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,.1)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: "50%", background: TEAL_BRIGHT, color: BG, display: "grid", placeItems: "center", fontWeight: 800 }}>S</div>
@@ -290,7 +328,7 @@ export default function HomePage() {
       <section id="services" style={{ position: "relative", padding: "72px 24px" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, color: TEAL, marginBottom: 10 }}>// SERVICES · हमारी सेवाएँ</div>
-          <h2 style={{ fontSize: 40, fontWeight: 800, margin: "0 0 32px", letterSpacing: "-1px", color: "#fff" }}>Three tools. Use one or all.</h2>
+          <h2 className="vp-section-title" style={{ fontWeight: 800, margin: "0 0 32px", letterSpacing: "-1px", color: "#fff" }}>Three tools. Use one or all.</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
             {serviceCards.map((c) => (
               <div key={c.title} style={{ background: "linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02))", border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, padding: 28 }}>
@@ -321,7 +359,7 @@ export default function HomePage() {
       <section style={{ position: "relative", padding: "48px 24px" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, color: TEAL, marginBottom: 10 }}>// WHO IT&apos;S FOR · किनके लिए</div>
-          <h2 style={{ fontSize: 40, fontWeight: 800, margin: "0 0 32px", letterSpacing: "-1px", color: "#fff" }}>Made for every kind of local business.</h2>
+          <h2 className="vp-section-title" style={{ fontWeight: 800, margin: "0 0 32px", letterSpacing: "-1px", color: "#fff" }}>Made for every kind of local business.</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 16 }}>
             {audienceCards.map((a) => (
               <div key={a.title} style={{ position: "relative", height: 320, borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255,255,255,.12)" }}>
@@ -339,7 +377,7 @@ export default function HomePage() {
       <section style={{ position: "relative", padding: "48px 24px" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, color: TEAL, marginBottom: 10 }}>// CUSTOMER JOURNEY · ग्राहक का सफ़र</div>
-          <h2 style={{ fontSize: 40, fontWeight: 800, margin: "0 0 40px", letterSpacing: "-1px", color: "#fff" }}>From first visit to repeat order.</h2>
+          <h2 className="vp-section-title" style={{ fontWeight: 800, margin: "0 0 40px", letterSpacing: "-1px", color: "#fff" }}>From first visit to repeat order.</h2>
           <div style={{ position: "relative", display: "flex", flexWrap: "wrap", gap: "32px 16px" }}>
             <div style={{ position: "absolute", top: 36, left: "12%", right: "12%", borderTop: "2px dashed rgba(79,209,217,.35)" }} />
             {journeySteps.map((s) => (
@@ -357,10 +395,10 @@ export default function HomePage() {
 
       {/* Demo CTA */}
       <section id="demo" style={{ position: "relative", padding: "24px 24px 80px" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", background: "linear-gradient(135deg, #006C78, #008490 60%, #09AEB5)", borderRadius: 20, padding: 52, color: "#fff", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 40, alignItems: "center" }}>
+        <div className="vp-demo-panel" style={{ maxWidth: 1200, margin: "0 auto", background: "linear-gradient(135deg, #006C78, #008490 60%, #09AEB5)", borderRadius: 20, color: "#fff", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 40, alignItems: "center" }}>
           <div>
             <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, marginBottom: 10, color: "#CFF3F5" }}>// FREE DEMO</div>
-            <h2 style={{ margin: "0 0 12px", fontSize: 40, fontWeight: 800, letterSpacing: "-1px" }}>Book a Free Demo</h2>
+            <h2 className="vp-section-title" style={{ margin: "0 0 12px", fontWeight: 800, letterSpacing: "-1px" }}>Book a Free Demo</h2>
             <p style={{ margin: 0, fontSize: 18, lineHeight: 1.55 }}>
               Tell us about your business and we will call you to suggest the right mix of services. Pricing is shared on the call.
             </p>
