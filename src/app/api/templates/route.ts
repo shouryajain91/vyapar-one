@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { GRAPH_VERSION, getWaContext, graphErrorMessage } from "@/lib/wa-context";
-import { extractVariables, validateTemplate, type TemplateInput } from "@/lib/template-validate";
+import { buildComponents, validateTemplate, type TemplateInput } from "@/lib/template-validate";
 
 // Create a message template on the client's WhatsApp account (goes to Meta for review).
 export async function POST(req: NextRequest) {
@@ -20,23 +20,19 @@ export async function POST(req: NextRequest) {
     language: String(input.language ?? ""),
     body: String(input.body ?? ""),
     examples: Array.isArray(input.examples) ? input.examples.map(String) : [],
+    header: input.header,
+    footer: input.footer ? String(input.footer) : undefined,
+    buttons: Array.isArray(input.buttons) ? input.buttons : [],
   };
 
   const problem = validateTemplate(input);
   if (problem) return NextResponse.json({ error: problem }, { status: 400 });
 
-  const hasVars = extractVariables(input.body).length > 0;
   const payload = {
     name: input.name,
     language: input.language,
     category: input.category,
-    components: [
-      {
-        type: "BODY",
-        text: input.body.trim(),
-        ...(hasVars ? { example: { body_text: [input.examples.map((e) => e.trim())] } } : {}),
-      },
-    ],
+    components: buildComponents(input),
   };
 
   const res = await fetch(
@@ -67,6 +63,10 @@ export async function POST(req: NextRequest) {
         category: data.category ?? input.category,
         status: data.status ?? "PENDING",
         body: input.body.trim(),
+        header_format: input.header && input.header.format !== "NONE" ? input.header.format : null,
+        header_text: input.header?.format === "TEXT" ? (input.header.text ?? "").trim() : null,
+        footer: (input.footer ?? "").trim() || null,
+        buttons: (input.buttons ?? []).length ? input.buttons : null,
         rejected_reason: null,
         synced_at: new Date().toISOString(),
       },

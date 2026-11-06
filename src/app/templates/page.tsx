@@ -58,7 +58,25 @@ export default async function TemplatesPage() {
                 {t.status ?? "UNKNOWN"}
               </span>
             </div>
+            {t.header_format && (
+              <p className="mt-2 text-xs font-medium text-gray-600">
+                {t.header_format === "TEXT"
+                  ? `Header: ${t.header_text ?? ""}`
+                  : `Header: ${t.header_format === "DOCUMENT" ? "PDF" : t.header_format.toLowerCase()}`}
+              </p>
+            )}
             {t.body && <p className="text-sm mt-2 whitespace-pre-wrap">{t.body}</p>}
+            {t.footer && <p className="mt-1 text-xs text-gray-500">{t.footer}</p>}
+            {Array.isArray(t.buttons) && t.buttons.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(t.buttons as { type: string; text: string }[]).map((b, i) => (
+                  <span key={i} className="rounded-full border px-3 py-1 text-xs text-gray-700">
+                    {b.type === "URL" ? "🔗 " : b.type === "PHONE_NUMBER" ? "📞 " : ""}
+                    {b.text}
+                  </span>
+                ))}
+              </div>
+            )}
             {t.status === "REJECTED" && t.rejected_reason && t.rejected_reason !== "NONE" && (
               <p className="mt-2 text-xs text-red-700">Reason: {t.rejected_reason}</p>
             )}

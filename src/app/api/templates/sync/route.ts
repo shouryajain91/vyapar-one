@@ -11,7 +11,12 @@ interface MetaTemplate {
   language: string;
   category: string;
   status: string;
-  components?: { type: string; text?: string }[];
+  components?: {
+    type: string;
+    format?: string;
+    text?: string;
+    buttons?: { type: string; text: string; url?: string; phone_number?: string }[];
+  }[];
 }
 
 // Pulls the logged-in client's message templates from their WABA on Meta
@@ -79,6 +84,19 @@ export async function POST() {
     category: t.category,
     status: t.status,
     body: t.components?.find((c) => c.type === "BODY")?.text ?? null,
+    header_format: t.components?.find((c) => c.type === "HEADER")?.format ?? null,
+    header_text:
+      t.components?.find((c) => c.type === "HEADER" && c.format === "TEXT")?.text ?? null,
+    footer: t.components?.find((c) => c.type === "FOOTER")?.text ?? null,
+    buttons:
+      t.components
+        ?.find((c) => c.type === "BUTTONS")
+        ?.buttons?.map((b) => ({
+          type: b.type,
+          text: b.text,
+          ...(b.url ? { url: b.url } : {}),
+          ...(b.phone_number ? { phone: b.phone_number } : {}),
+        })) ?? null,
     synced_at: now,
   }));
 
