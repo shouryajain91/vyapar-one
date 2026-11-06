@@ -6,7 +6,7 @@ export const metadata: Metadata = {
     "How Vyapar One collects, uses, and protects your data and your customers' WhatsApp messages.",
 };
 
-const EFFECTIVE_DATE = "October 8, 2026";
+const EFFECTIVE_DATE = "November 7, 2026";
 
 function H2({ children }: { children: React.ReactNode }) {
   return (
@@ -107,7 +107,12 @@ export default function PrivacyPolicyPage() {
           To sync WhatsApp message templates and their approval status from
           Meta.
         </li>
-        <li>To provide customer support and respond to your requests.</li>
+        <li>
+          To provide customer support and respond to your requests. Authorized
+          Vyapar One staff can view conversations on a read-only basis to
+          investigate problems you report, to prevent abuse, and to meet
+          legal or platform requirements. Each such access is logged.
+        </li>
         <li>
           To comply with legal obligations and Meta&apos;s WhatsApp
           Business Platform policies.

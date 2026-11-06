@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { decrypt } from "@/lib/crypto";
+import { supabaseRSC } from "@/lib/supabase-rsc";
 
 const GRAPH_VERSION = "v21.0";
 
 interface SendRequestBody {
-  client_id: string;
+  client_id?: string; // ignored: the client is taken from the login session
   to: string; // E.164 format, e.g. 919876543210
   type: "text" | "template";
   text?: string;
@@ -22,15 +23,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { client_id, to, type } = body;
-  if (!client_id || !to || !type) {
-    return NextResponse.json(
-      { error: "client_id, to, and type are required" },
-      { status: 400 }
-    );
+  const { to, type } = body;
+  if (!to || !type) {
+    return NextResponse.json({ error: "to and type are required" }, { status: 400 });
+  }
+
+  // Who is calling? The client always comes from the session, never the body.
+  const supabase = await supabaseRSC();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
   const db = supabaseAdmin();
+  const { data: appUser } = await db
+    .from("app_users")
+    .select("client_id")
+    .eq("user_id", user.id)
+    .single();
+  if (!appUser) {
+    return NextResponse.json({ error: "No client for user" }, { status: 403 });
+  }
+  const client_id = appUser.client_id;
 
   // TODO: add per-client rate limiting here before going to production
   // with multiple real clients, so one client can't exhaust shared quota.
