@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { supabaseRSC } from "@/lib/supabase-rsc";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { ACTIVE_NUMBER_COOKIE } from "@/lib/wa-accounts";
 import { encrypt } from "@/lib/crypto";
 import { generatePin, registerPhoneNumber } from "@/lib/whatsapp-register";
 
 const GRAPH_VERSION = "v21.0";
 
 interface CallbackBody {
-  client_id: string; // your internal client id (from the logged-in session)
+  client_id?: string; // ignored: the client is always taken from the session
   code: string; // authorization code from FB.login
   waba_id: string; // from the Embedded Signup postMessage event
   phone_number_id: string; // from the Embedded Signup postMessage event
@@ -20,12 +23,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { client_id, code, waba_id, phone_number_id } = body;
-  if (!client_id || !code || !waba_id || !phone_number_id) {
+  const { code, waba_id, phone_number_id } = body;
+  if (!code || !waba_id || !phone_number_id) {
     return NextResponse.json(
-      { error: "client_id, code, waba_id, and phone_number_id are required" },
+      { error: "code, waba_id, and phone_number_id are required" },
       { status: 400 }
     );
+  }
+
+  // The client comes from the signed-in session, never from the request body.
+  const supabase = await supabaseRSC();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const adminDb = supabaseAdmin();
+  const { data: appUser } = await adminDb
+    .from("app_users")
+    .select("client_id")
+    .eq("user_id", user.id)
+    .single();
+  if (!appUser) return NextResponse.json({ error: "No client for user" }, { status: 403 });
+  const client_id: string = appUser.client_id;
+
+  // A number that already belongs to another business can't be taken over.
+  const { data: existing } = await adminDb
+    .from("whatsapp_accounts")
+    .select("client_id")
+    .eq("phone_number_id", phone_number_id)
+    .maybeSingle();
+  if (existing && existing.client_id !== client_id) {
+    return NextResponse.json({ error: "This number is already connected to another account" }, { status: 409 });
   }
 
   // Exchange the authorization code for an access token.
@@ -124,6 +152,15 @@ export async function POST(req: NextRequest) {
     .from("clients")
     .update({ status: "active" })
     .eq("id", client_id);
+
+  // Work with the number that was just connected.
+  (await cookies()).set(ACTIVE_NUMBER_COOKIE, phone_number_id, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 365,
+  });
 
   return NextResponse.json({
     success: true,

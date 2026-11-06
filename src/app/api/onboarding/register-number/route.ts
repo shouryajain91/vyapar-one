@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { supabaseRSC } from "@/lib/supabase-rsc";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { decrypt, encrypt } from "@/lib/crypto";
+import { loadAccounts } from "@/lib/wa-accounts";
 import { generatePin, registerPhoneNumber } from "@/lib/whatsapp-register";
 
 // Retries Cloud API registration for the logged-in client's number.
-export async function POST() {
+export async function POST(req: Request) {
   const supabase = await supabaseRSC();
   const {
     data: { user },
@@ -24,11 +25,10 @@ export async function POST() {
     return NextResponse.json({ error: "No client for user" }, { status: 403 });
   }
 
-  const { data: account } = await db
-    .from("whatsapp_accounts")
-    .select("id, phone_number_id, access_token_encrypted, registration_pin_encrypted")
-    .eq("client_id", appUser.client_id)
-    .maybeSingle();
+  // Which number to register: the one named in the body, else the active one.
+  const wanted = (await req.json().catch(() => ({})) as { phone_number_id?: string }).phone_number_id;
+  const { accounts, active } = await loadAccounts(appUser.client_id);
+  const account = wanted ? accounts.find((a) => a.phone_number_id === wanted) : active;
   if (!account) {
     return NextResponse.json({ error: "Connect WhatsApp first" }, { status: 404 });
   }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseRSC } from "@/lib/supabase-rsc";
+import { loadAccounts } from "@/lib/wa-accounts";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { decrypt } from "@/lib/crypto";
 
@@ -40,11 +41,7 @@ export async function POST() {
     return NextResponse.json({ error: "No client for user" }, { status: 403 });
   }
 
-  const { data: account } = await db
-    .from("whatsapp_accounts")
-    .select("waba_id, access_token_encrypted")
-    .eq("client_id", appUser.client_id)
-    .maybeSingle();
+  const { active: account } = await loadAccounts(appUser.client_id);
   if (!account) {
     return NextResponse.json(
       { error: "Connect WhatsApp first" },

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button } from "@/components/ui";
 
-export function RegisterNumberButton() {
+export function RegisterNumberButton({ phoneNumberId }: { phoneNumberId?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -14,7 +14,11 @@ export function RegisterNumberButton() {
     setBusy(true);
     setMsg(null);
     try {
-      const res = await fetch("/api/onboarding/register-number", { method: "POST" });
+      const res = await fetch("/api/onboarding/register-number", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone_number_id: phoneNumberId }),
+      });
       const data = await res.json();
       if (!res.ok) setMsg(data.error ?? "Registration failed");
       else {

@@ -3,6 +3,7 @@
 import { showDemoCaption, PERM_MGMT, PERM_MSG } from "@/lib/demo";
 import { buttonClass } from "@/components/ui";
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 declare global {
   interface Window {
@@ -37,7 +38,16 @@ interface SignupData {
   phone_number_id?: string;
 }
 
-export function ConnectWhatsAppButton({ clientId }: { clientId: string }) {
+export function ConnectWhatsAppButton({
+  clientId,
+  label = "Connect WhatsApp",
+  variant = "primary",
+}: {
+  clientId: string;
+  label?: string;
+  variant?: "primary" | "secondary";
+}) {
+  const router = useRouter();
   const [status, setStatus] = useState<
     "idle" | "connecting" | "connected" | "error"
   >("idle");
@@ -120,6 +130,7 @@ export function ConnectWhatsAppButton({ clientId }: { clientId: string }) {
           setStatus("connected");
           showDemoCaption({ text: "Connected. The business account and phone number are now linked to this workspace.", permission: PERM_MGMT, ms: 7000 });
           window.sessionStorage.removeItem("wa_signup_data");
+          router.refresh();
         } else {
           setStatus("error");
         }
@@ -128,7 +139,7 @@ export function ConnectWhatsAppButton({ clientId }: { clientId: string }) {
         setStatus("error");
       }
     },
-    [clientId]
+    [clientId, router]
   );
 
   const handleConnect = useCallback(() => {
@@ -160,13 +171,13 @@ export function ConnectWhatsAppButton({ clientId }: { clientId: string }) {
       <button
         onClick={handleConnect}
         disabled={!sdkReady || status === "connecting"}
-        className={buttonClass("primary")}
+        className={buttonClass(variant)}
       >
         {status === "connected"
-          ? "WhatsApp Connected ✓"
+          ? "Connected ✓"
           : status === "connecting"
           ? "Connecting..."
-          : "Connect WhatsApp"}
+          : label}
       </button>
       {status === "error" && (
         <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">

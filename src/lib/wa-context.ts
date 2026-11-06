@@ -1,6 +1,7 @@
 import { supabaseRSC } from "@/lib/supabase-rsc";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { decrypt } from "@/lib/crypto";
+import { loadAccounts } from "@/lib/wa-accounts";
 
 export const GRAPH_VERSION = "v21.0";
 
@@ -24,11 +25,7 @@ export async function getWaContext(): Promise<WaContext> {
     .single();
   if (!appUser) return { ok: false, status: 403, error: "No client for user" };
 
-  const { data: account } = await db
-    .from("whatsapp_accounts")
-    .select("waba_id, phone_number_id, access_token_encrypted")
-    .eq("client_id", appUser.client_id)
-    .maybeSingle();
+  const { active: account } = await loadAccounts(appUser.client_id);
   if (!account) return { ok: false, status: 404, error: "Connect WhatsApp first" };
 
   return {

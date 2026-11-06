@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { loadAccounts } from "@/lib/wa-accounts";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { decrypt } from "@/lib/crypto";
 import { supabaseRSC } from "@/lib/supabase-rsc";
@@ -52,13 +53,9 @@ export async function POST(req: NextRequest) {
   // TODO: add per-client rate limiting here before going to production
   // with multiple real clients, so one client can't exhaust shared quota.
 
-  const { data: account, error: accountError } = await db
-    .from("whatsapp_accounts")
-    .select("phone_number_id, access_token_encrypted, verification_status")
-    .eq("client_id", client_id)
-    .single();
+  const { active: account } = await loadAccounts(client_id);
 
-  if (accountError || !account) {
+  if (!account) {
     return NextResponse.json({ error: "No connected WhatsApp account for this client" }, { status: 404 });
   }
   if (account.verification_status === "pending_registration") {
@@ -137,6 +134,7 @@ export async function POST(req: NextRequest) {
     wa_message_id: waMessageId,
     direction: "outbound",
     from_number: account.phone_number_id,
+    phone_number_id: account.phone_number_id,
     to_number: to,
     message_type: type,
     body: storedBody,

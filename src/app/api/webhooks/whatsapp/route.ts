@@ -109,6 +109,7 @@ async function processPayload(payload: WhatsAppWebhookPayload) {
           direction: "inbound",
           from_number: msg.from,
           to_number: phoneNumberId,
+          phone_number_id: phoneNumberId,
           message_type: msg.type,
           body: extractBody(msg),
           status: "received",

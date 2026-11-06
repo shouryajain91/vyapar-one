@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { supabaseRSC } from "@/lib/supabase-rsc";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { loadAccounts } from "@/lib/wa-accounts";
 
 /**
  * Resolves the logged-in user's client (tenant) record.
@@ -35,11 +36,8 @@ export async function getCurrentClient() {
     .eq("id", appUser!.client_id)
     .single();
 
-  const { data: whatsappAccount } = await admin
-    .from("whatsapp_accounts")
-    .select("*")
-    .eq("client_id", appUser!.client_id)
-    .maybeSingle();
+  // A business can have several numbers; whatsappAccount is the active one.
+  const { accounts: whatsappAccounts, active: whatsappAccount } = await loadAccounts(appUser!.client_id);
 
-  return { user, client, whatsappAccount };
+  return { user, client, whatsappAccount, whatsappAccounts };
 }

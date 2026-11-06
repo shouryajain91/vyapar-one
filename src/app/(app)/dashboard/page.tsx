@@ -4,11 +4,12 @@ import { getCurrentClient } from "@/lib/current-client";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { ConnectWhatsAppButton } from "@/components/ConnectWhatsAppButton";
 import { RegisterNumberButton } from "@/components/RegisterNumberButton";
+import { setActiveNumberAction } from "../actions";
 import { Icon, type IconName } from "@/components/icons";
-import { Badge, Card, LinkButton, PageContainer, PageHeader } from "@/components/ui";
+import { Badge, Card, LinkButton, PageContainer, PageHeader, buttonClass } from "@/components/ui";
 
 export default async function DashboardPage() {
-  const { client, whatsappAccount } = await getCurrentClient();
+  const { client, whatsappAccount, whatsappAccounts } = await getCurrentClient();
   const db = supabaseAdmin();
 
   const [{ data: msgs }, { data: tpls }] = await Promise.all([
@@ -120,26 +121,48 @@ export default async function DashboardPage() {
               <ConnectWhatsAppButton clientId={client!.id} />
             </div>
           )}
-          {state === "pending" && (
+          {state !== "none" && (
             <div>
-              <p className="mb-1 text-sm font-medium text-slate-900">{whatsappAccount!.display_name ?? "Your number"}</p>
-              <p className="mb-4 text-sm text-slate-600">
-                Your number is linked, but WhatsApp hasn&apos;t activated it yet, so it can&apos;t send or receive messages.
+              <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+                {whatsappAccounts.map((a) => {
+                  const isActive = a.phone_number_id === whatsappAccount!.phone_number_id;
+                  const pending = a.verification_status === "pending_registration";
+                  return (
+                    <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900">{a.display_name ?? "Your number"}</p>
+                        <p className="font-mono text-xs text-slate-500">ID {a.phone_number_id}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {pending ? <Badge tone="amber">Needs registration</Badge> : <Badge tone="green">Connected</Badge>}
+                        {isActive ? (
+                          <Badge tone="brand">In use</Badge>
+                        ) : (
+                          <form action={setActiveNumberAction}>
+                            <input type="hidden" name="phone_number_id" value={a.phone_number_id} />
+                            <button type="submit" className={buttonClass("secondary", "sm")}>Use this number</button>
+                          </form>
+                        )}
+                      </div>
+                      {pending && (
+                        <div className="w-full">
+                          <p className="mb-2 text-sm text-slate-600">
+                            This number is linked, but WhatsApp hasn&apos;t activated it yet, so it can&apos;t send or receive messages.
+                          </p>
+                          <RegisterNumberButton phoneNumberId={a.phone_number_id} />
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="mt-3 text-xs text-slate-500">
+                The inbox, templates and new messages use the number marked &ldquo;In use&rdquo;.
               </p>
-              <RegisterNumberButton />
+              <div className="mt-4">
+                <ConnectWhatsAppButton clientId={client!.id} label="Add another number" variant="secondary" />
+              </div>
             </div>
-          )}
-          {state === "connected" && (
-            <dl className="grid gap-4 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-slate-500">Display name</dt>
-                <dd className="mt-0.5 font-medium text-slate-900">{whatsappAccount!.display_name ?? "Your business"}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Phone number ID</dt>
-                <dd className="mt-0.5 font-mono text-slate-900">{whatsappAccount!.phone_number_id}</dd>
-              </div>
-            </dl>
           )}
         </Card>
 
