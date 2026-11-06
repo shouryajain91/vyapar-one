@@ -1,8 +1,19 @@
 export const instant = false;
 
+import Link from "next/link";
 import { getCurrentClient } from "@/lib/current-client";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { SyncTemplatesButton } from "@/components/SyncTemplatesButton";
+import { DeleteTemplateButton } from "@/components/DeleteTemplateButton";
+
+const STATUS_STYLE: Record<string, string> = {
+  APPROVED: "bg-green-100 text-green-800",
+  PENDING: "bg-amber-100 text-amber-800",
+  IN_APPEAL: "bg-amber-100 text-amber-800",
+  REJECTED: "bg-red-100 text-red-800",
+  PAUSED: "bg-gray-200 text-gray-700",
+  DISABLED: "bg-gray-200 text-gray-700",
+};
 
 export default async function TemplatesPage() {
   const { client, whatsappAccount } = await getCurrentClient();
@@ -16,30 +27,48 @@ export default async function TemplatesPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="text-2xl font-semibold mb-6">Message Templates</h1>
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="text-2xl font-semibold">Message Templates</h1>
+        {whatsappAccount && (
+          <Link href="/templates/new" className="rounded-lg bg-black px-4 py-2 text-sm text-white">
+            New template
+          </Link>
+        )}
+      </div>
       <p className="text-sm text-gray-600 mb-4">
-        Templates are created and approved in Meta&apos;s WhatsApp Manager,
-        then synced here so you can use them to start conversations.
+        Templates are reviewed by WhatsApp before you can use them. Create one
+        here, or sync the ones you made in WhatsApp Manager.
       </p>
       {whatsappAccount ? (
         <SyncTemplatesButton />
       ) : (
         <p className="text-sm text-gray-500 mb-6">
-          Connect WhatsApp from your dashboard to sync templates.
+          Connect WhatsApp from your dashboard to manage templates.
         </p>
       )}
       <ul className="space-y-3">
         {(templates ?? []).map((t) => (
           <li key={t.id} className="rounded-lg border p-4">
-            <p className="font-medium">{t.name}</p>
-            <p className="text-xs text-gray-500">
-              {t.language} · {t.category} · {t.status}
-            </p>
-            {t.body && <p className="text-sm mt-2">{t.body}</p>}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-medium">{t.name}</p>
+                <p className="text-xs text-gray-500">{t.language} · {t.category}</p>
+              </div>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[t.status ?? ""] ?? "bg-gray-100 text-gray-700"}`}>
+                {t.status ?? "UNKNOWN"}
+              </span>
+            </div>
+            {t.body && <p className="text-sm mt-2 whitespace-pre-wrap">{t.body}</p>}
+            {t.status === "REJECTED" && t.rejected_reason && t.rejected_reason !== "NONE" && (
+              <p className="mt-2 text-xs text-red-700">Reason: {t.rejected_reason}</p>
+            )}
+            <div className="mt-3">
+              <DeleteTemplateButton name={t.name} />
+            </div>
           </li>
         ))}
         {(!templates || templates.length === 0) && (
-          <p className="text-sm text-gray-500">No templates synced yet.</p>
+          <p className="text-sm text-gray-500">No templates yet.</p>
         )}
       </ul>
     </main>

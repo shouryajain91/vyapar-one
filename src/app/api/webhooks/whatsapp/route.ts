@@ -75,6 +75,14 @@ async function processPayload(payload: WhatsAppWebhookPayload) {
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
       const value = change.value;
+
+      // Template approval / rejection updates arrive per WABA (entry.id),
+      // not per phone number.
+      if (change.field === "message_template_status_update") {
+        await handleTemplateStatus(db, entry.id, value);
+        continue;
+      }
+
       const phoneNumberId = value?.metadata?.phone_number_id;
       if (!phoneNumberId) continue;
 
@@ -120,6 +128,37 @@ async function processPayload(payload: WhatsAppWebhookPayload) {
   }
 }
 
+async function handleTemplateStatus(
+  db: ReturnType<typeof supabaseAdmin>,
+  wabaId: string | undefined,
+  value: WhatsAppChangeValue
+) {
+  const name = value.message_template_name;
+  const event = value.event;
+  if (!wabaId || !name || !event) return;
+
+  const { data: account } = await db
+    .from("whatsapp_accounts")
+    .select("client_id")
+    .eq("waba_id", wabaId)
+    .maybeSingle();
+  if (!account) return;
+
+  let q = db
+    .from("templates")
+    .update({
+      status: event,
+      rejected_reason: value.reason && value.reason !== "NONE" ? value.reason : null,
+      synced_at: new Date().toISOString(),
+    })
+    .eq("client_id", account.client_id)
+    .eq("name", name);
+  if (value.message_template_language) {
+    q = q.eq("language", value.message_template_language);
+  }
+  await q;
+}
+
 function extractBody(msg: WhatsAppInboundMessage): string | null {
   if (msg.type === "text") return msg.text?.body ?? null;
   if (msg.type === "button") return msg.button?.text ?? null;
@@ -141,14 +180,23 @@ function extractBody(msg: WhatsAppInboundMessage): string | null {
 
 // --- Minimal types for the parts of Meta's webhook payload we use ---
 
+interface WhatsAppChangeValue {
+  metadata?: { phone_number_id?: string };
+  messages?: WhatsAppInboundMessage[];
+  statuses?: Array<{ id: string; status: string }>;
+  // message_template_status_update fields
+  event?: string;
+  message_template_name?: string;
+  message_template_language?: string;
+  reason?: string;
+}
+
 interface WhatsAppWebhookPayload {
   entry?: Array<{
+    id?: string;
     changes?: Array<{
-      value: {
-        metadata?: { phone_number_id?: string };
-        messages?: WhatsAppInboundMessage[];
-        statuses?: Array<{ id: string; status: string }>;
-      };
+      field?: string;
+      value: WhatsAppChangeValue;
     }>;
   }>;
 }
