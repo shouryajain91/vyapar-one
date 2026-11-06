@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export function SyncTemplatesButton() {
   const router = useRouter();
@@ -28,15 +30,12 @@ export function SyncTemplatesButton() {
   }
 
   return (
-    <div className="flex items-center gap-3 mb-6">
-      <button
-        onClick={sync}
-        disabled={busy}
-        className="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
-      >
+    <div className="flex items-center gap-3">
+      {msg && <span className="text-sm text-slate-500">{msg}</span>}
+      <Button variant="secondary" onClick={sync} disabled={busy}>
+        <Icon name="refresh" className={busy ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
         {busy ? "Syncing..." : "Sync from WhatsApp"}
-      </button>
-      {msg && <span className="text-sm text-gray-600">{msg}</span>}
+      </Button>
     </div>
   );
 }

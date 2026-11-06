@@ -1,6 +1,9 @@
 export const instant = false;
 
+import Link from "next/link";
 import { forgotPasswordAction } from "./actions";
+import { AuthShell } from "@/components/AuthShell";
+import { Alert, buttonClass, inputCls, labelCls } from "@/components/ui";
 
 export default async function ForgotPasswordPage({
   searchParams,
@@ -10,43 +13,26 @@ export default async function ForgotPasswordPage({
   const { error, sent } = await searchParams;
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
-      <h1 className="text-2xl font-semibold mb-2">Reset your password</h1>
-      <p className="text-sm text-gray-600 mb-6">
-        Enter your account email and we&apos;ll send you a link to choose a new
-        password.
-      </p>
-      {error && (
-        <p className="text-sm text-red-600 mb-4 bg-red-50 rounded p-3">{error}</p>
-      )}
+    <AuthShell
+      title="Reset your password"
+      subtitle="Enter your account email and we'll send you a link to choose a new password."
+      footer={<Link href="/login" className="font-semibold text-brand-700 hover:underline">Back to log in</Link>}
+    >
+      {error && <Alert tone="error" className="mb-4">{error}</Alert>}
       {sent ? (
-        <p className="text-sm text-green-800 mb-4 bg-green-50 rounded p-3">
-          If an account exists for that email, a reset link is on its way.
-          Check your inbox and spam folder. The link works once and expires
-          soon.
-        </p>
+        <Alert tone="success">
+          If an account exists for that email, a reset link is on its way. Check your inbox and spam
+          folder. The link works once and expires soon.
+        </Alert>
       ) : (
         <form action={forgotPasswordAction} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input
-              name="email"
-              type="email"
-              required
-              className="w-full rounded-lg border px-3 py-2"
-            />
+            <label className={labelCls}>Email</label>
+            <input name="email" type="email" required autoComplete="email" className={inputCls} />
           </div>
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-black text-white py-2 font-medium"
-          >
-            Send reset link
-          </button>
+          <button type="submit" className={buttonClass("primary", "md", "w-full")}>Send reset link</button>
         </form>
       )}
-      <p className="text-sm text-gray-600 mt-4">
-        <a href="/login" className="underline">Back to log in</a>
-      </p>
-    </main>
+    </AuthShell>
   );
 }

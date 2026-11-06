@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { createResetLinkAction, setTempPasswordAction } from "@/app/admin/actions";
+import { createResetLinkAction, setTempPasswordAction } from "@/app/(app)/admin/actions";
+import { Alert, Button } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export function AdminUserActions({ userId, email }: { userId: string; email: string }) {
   const [busy, setBusy] = useState(false);
@@ -21,28 +23,28 @@ export function AdminUserActions({ userId, email }: { userId: string; email: str
     const res = kind === "link" ? await createResetLinkAction(userId) : await setTempPasswordAction(userId);
     setBusy(false);
     if (!res.ok) return setErr(res.error);
-    if ("link" in res) setOut({ label: "Reset link (send it to the user, works once):", value: res.link });
-    else setOut({ label: "Temporary password (shown once, ask the user to change it):", value: res.password });
+    if ("link" in res) setOut({ label: "Reset link. Send it to the user, it works once:", value: res.link });
+    else setOut({ label: "Temporary password. Shown once, ask the user to change it:", value: res.password });
   }
 
   return (
-    <div className="mt-2">
+    <div>
       <div className="flex flex-wrap gap-2">
-        <button disabled={busy} onClick={() => run("link")}
-          className="rounded border px-3 py-1 text-xs hover:bg-gray-50 disabled:opacity-50">
+        <Button variant="secondary" size="sm" disabled={busy} onClick={() => run("link")}>
+          <Icon name="link" className="h-3.5 w-3.5" />
           Create reset link
-        </button>
-        <button disabled={busy} onClick={() => run("temp")}
-          className="rounded border px-3 py-1 text-xs hover:bg-gray-50 disabled:opacity-50">
+        </Button>
+        <Button variant="secondary" size="sm" disabled={busy} onClick={() => run("temp")}>
+          <Icon name="shield" className="h-3.5 w-3.5" />
           Set temporary password
-        </button>
+        </Button>
       </div>
-      {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
+      {err && <Alert tone="error" className="mt-3">{err}</Alert>}
       {out && (
-        <div className="mt-2 rounded bg-amber-50 p-2 text-xs text-amber-900">
-          <p className="mb-1">{out.label}</p>
-          <code className="block break-all select-all">{out.value}</code>
-        </div>
+        <Alert tone="warning" className="mt-3">
+          <p className="mb-1 font-medium">{out.label}</p>
+          <code className="block break-all rounded bg-white/70 p-2 text-xs select-all">{out.value}</code>
+        </Alert>
       )}
     </div>
   );

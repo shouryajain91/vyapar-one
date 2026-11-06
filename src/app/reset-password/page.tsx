@@ -3,6 +3,8 @@ export const instant = false;
 import { redirect } from "next/navigation";
 import { supabaseRSC } from "@/lib/supabase-rsc";
 import { resetPasswordAction } from "./actions";
+import { AuthShell } from "@/components/AuthShell";
+import { Alert, buttonClass, inputCls, labelCls } from "@/components/ui";
 
 export default async function ResetPasswordPage({
   searchParams,
@@ -21,27 +23,19 @@ export default async function ResetPasswordPage({
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
-      <h1 className="text-2xl font-semibold mb-2">Choose a new password</h1>
-      <p className="text-sm text-gray-600 mb-6">For {user.email}</p>
-      {error && (
-        <p className="text-sm text-red-600 mb-4 bg-red-50 rounded p-3">{error}</p>
-      )}
+    <AuthShell title="Choose a new password" subtitle={`For ${user.email}`}>
+      {error && <Alert tone="error" className="mb-4">{error}</Alert>}
       <form action={resetPasswordAction} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">New password</label>
-          <input name="password" type="password" required minLength={8}
-            className="w-full rounded-lg border px-3 py-2" />
+          <label className={labelCls}>New password</label>
+          <input name="password" type="password" required minLength={8} autoComplete="new-password" className={inputCls} />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Confirm password</label>
-          <input name="confirm" type="password" required minLength={8}
-            className="w-full rounded-lg border px-3 py-2" />
+          <label className={labelCls}>Confirm password</label>
+          <input name="confirm" type="password" required minLength={8} autoComplete="new-password" className={inputCls} />
         </div>
-        <button type="submit" className="w-full rounded-lg bg-black text-white py-2 font-medium">
-          Save password
-        </button>
+        <button type="submit" className={buttonClass("primary", "md", "w-full")}>Save password</button>
       </form>
-    </main>
+    </AuthShell>
   );
 }

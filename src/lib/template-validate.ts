@@ -1,6 +1,6 @@
 export const CATEGORIES = [
-  { value: "UTILITY", label: "Utility (order updates, confirmations, reminders)" },
-  { value: "MARKETING", label: "Marketing (offers, promotions, announcements)" },
+  { value: "UTILITY", label: "Utility (updates & reminders)" },
+  { value: "MARKETING", label: "Marketing (offers & promotions)" },
 ] as const;
 
 export const LANGUAGES = [

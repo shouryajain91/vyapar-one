@@ -1,5 +1,6 @@
 "use client";
 
+import { buttonClass } from "@/components/ui";
 import { useEffect, useState, useCallback } from "react";
 
 declare global {
@@ -156,7 +157,7 @@ export function ConnectWhatsAppButton({ clientId }: { clientId: string }) {
       <button
         onClick={handleConnect}
         disabled={!sdkReady || status === "connecting"}
-        className="rounded-lg bg-green-600 px-4 py-2 text-white font-medium disabled:opacity-50"
+        className={buttonClass("primary")}
       >
         {status === "connected"
           ? "WhatsApp Connected ✓"
@@ -165,7 +166,7 @@ export function ConnectWhatsAppButton({ clientId }: { clientId: string }) {
           : "Connect WhatsApp"}
       </button>
       {status === "error" && (
-        <p className="text-sm text-red-600 mt-2">
+        <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           Something went wrong connecting WhatsApp. Please try again.
         </p>
       )}

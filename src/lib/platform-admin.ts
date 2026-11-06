@@ -7,18 +7,21 @@ import { supabaseAdmin } from "@/lib/supabase-server";
  * (comma-separated). If the variable is unset, nobody is an admin.
  * Everyone else gets a 404 so the area is not discoverable.
  */
-export async function requirePlatformAdmin() {
+export function isPlatformAdminEmail(email: string | null | undefined): boolean {
   const allowed = (process.env.PLATFORM_ADMIN_EMAILS ?? "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
+  return !!email && allowed.includes(email.toLowerCase());
+}
 
+export async function requirePlatformAdmin() {
   const supabase = await supabaseRSC();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !user.email || !allowed.includes(user.email.toLowerCase())) {
+  if (!user || !isPlatformAdminEmail(user.email)) {
     notFound();
   }
   return { user, email: user.email! };

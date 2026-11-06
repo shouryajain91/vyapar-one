@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export function DeleteTemplateButton({ name }: { name: string }) {
   const router = useRouter();
@@ -22,11 +24,12 @@ export function DeleteTemplateButton({ name }: { name: string }) {
   }
 
   return (
-    <span>
-      <button onClick={del} disabled={busy} className="text-xs text-red-600 underline disabled:opacity-50">
+    <span className="inline-flex items-center gap-2">
+      <Button variant="danger" size="sm" onClick={del} disabled={busy}>
+        <Icon name="trash" className="h-3.5 w-3.5" />
         {busy ? "Deleting..." : "Delete"}
-      </button>
-      {err && <span className="ml-2 text-xs text-red-600">{err}</span>}
+      </Button>
+      {err && <span className="text-xs text-red-600">{err}</span>}
     </span>
   );
 }

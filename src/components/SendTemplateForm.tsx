@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SAMPLE_RULES } from "@/lib/template-validate";
 import { describeInputs, renderBody, type SendableTemplate } from "@/lib/template-send";
+import { Alert, Button, buttonClass, hintCls, inputCls, labelCls } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { WaPreview } from "@/components/WaPreview";
 
-const field = "w-full rounded-lg border px-3 py-2 text-sm";
 const keyOf = (t: SendableTemplate) => `${t.name}|${t.language}`;
 
 export function SendTemplateForm({
@@ -34,7 +36,7 @@ export function SendTemplateForm({
 
   const tpl = templates.find((t) => keyOf(t) === key);
   if (!tpl) {
-    return <p className="text-sm text-gray-500">No approved templates yet. Create one and wait for approval.</p>;
+    return <p className="text-sm text-slate-500">No approved templates yet. Create one and wait for approval.</p>;
   }
   const need = describeInputs(tpl);
   const params = need.bodyVars.map((n) => bodyParams[n] ?? "");
@@ -93,20 +95,21 @@ export function SendTemplateForm({
   }
 
   const headerLabel = tpl.header_format === "DOCUMENT" ? "PDF" : tpl.header_format?.toLowerCase();
+  const previewMedia = need.headerMedia ? mediaName || mediaLink || (need.headerMedia === "DOCUMENT" ? "PDF document" : headerLabel!) : null;
 
   return (
     <form onSubmit={send} className="space-y-5">
       {!fixedTo && (
         <div>
-          <label className="block text-sm font-medium mb-1">Customer&apos;s WhatsApp number</label>
-          <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="+91 98765 43210" className={field} />
-          <p className="text-xs text-gray-500 mt-1">With country code. A 10-digit Indian number is treated as +91.</p>
+          <label className={labelCls}>Customer&apos;s WhatsApp number</label>
+          <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="+91 98765 43210" className={inputCls} />
+          <p className={hintCls}>With country code. A 10-digit Indian number is treated as +91.</p>
         </div>
       )}
 
       <div>
-        <label className="block text-sm font-medium mb-1">Template</label>
-        <select value={key} onChange={(e) => pick(e.target.value)} className={field}>
+        <label className={labelCls}>Template</label>
+        <select value={key} onChange={(e) => pick(e.target.value)} className={inputCls}>
           {templates.map((t) => (
             <option key={keyOf(t)} value={keyOf(t)}>{t.name} ({t.language})</option>
           ))}
@@ -115,83 +118,78 @@ export function SendTemplateForm({
 
       {need.headerVar && (
         <div>
-          <label className="block text-sm font-medium mb-1">Header value ({"{{1}}"})</label>
-          <input value={headerText} onChange={(e) => setHeaderText(e.target.value)} className={field} />
+          <label className={labelCls}>Header value <span className="font-mono text-slate-400">{"{{1}}"}</span></label>
+          <input value={headerText} onChange={(e) => setHeaderText(e.target.value)} className={inputCls} />
         </div>
       )}
 
       {need.headerMedia && (
         <div>
-          <label className="block text-sm font-medium mb-1">Header {headerLabel}</label>
-          <input
-            type="file"
-            accept={SAMPLE_RULES[need.headerMedia].types.join(",")}
-            onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
-            className="block w-full text-sm"
-          />
-          {uploading && <p className="text-xs text-gray-600 mt-1">Uploading...</p>}
-          {mediaId && <p className="text-xs text-green-700 mt-1">Ready: {mediaName}</p>}
+          <label className={labelCls}>Header {headerLabel}</label>
+          <label className={`${buttonClass("secondary")} cursor-pointer`}>
+            <Icon name="image" />
+            {mediaId ? "Choose a different file" : "Upload file"}
+            <input
+              type="file"
+              accept={SAMPLE_RULES[need.headerMedia].types.join(",")}
+              onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
+              className="sr-only"
+            />
+          </label>
+          {uploading && <p className="mt-2 text-sm text-slate-600">Uploading...</p>}
+          {mediaId && <p className="mt-2 text-sm font-medium text-emerald-700">Ready: {mediaName}</p>}
           {!mediaId && (
             <input value={mediaLink} onChange={(e) => setMediaLink(e.target.value)}
-              placeholder="or paste a public https link (for files over 4 MB)" className={`${field} mt-2`} />
+              placeholder="or paste a public https link (for files over 4 MB)" className={`${inputCls} mt-2`} />
           )}
         </div>
       )}
 
       {need.bodyVars.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Message details</p>
-          {need.bodyVars.map((n) => (
-            <div key={n} className="flex items-center gap-2">
-              <span className="w-12 text-sm text-gray-600">{`{{${n}}}`}</span>
-              <input value={bodyParams[n] ?? ""} onChange={(e) => setBodyParams({ ...bodyParams, [n]: e.target.value })} className={field} />
-            </div>
-          ))}
+        <div>
+          <p className={labelCls}>Message details</p>
+          <div className="space-y-2">
+            {need.bodyVars.map((n) => (
+              <div key={n} className="flex items-center gap-3">
+                <span className="w-12 shrink-0 font-mono text-sm text-slate-500">{`{{${n}}}`}</span>
+                <input value={bodyParams[n] ?? ""} onChange={(e) => setBodyParams({ ...bodyParams, [n]: e.target.value })} className={inputCls} />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {need.urlButtons.map((ub) => (
         <div key={ub.index}>
-          <label className="block text-sm font-medium mb-1">
-            Link for &ldquo;{ub.label}&rdquo;
-          </label>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500 break-all">{ub.url.replace(/\{\{1\}\}$/, "")}</span>
+          <label className={labelCls}>Link for &ldquo;{ub.label}&rdquo;</label>
+          <div className="flex items-center gap-2">
+            <span className="max-w-[45%] shrink-0 truncate text-sm text-slate-500">{ub.url.replace(/\{\{1\}\}$/, "")}</span>
             <input value={buttonParams[String(ub.index)] ?? ""}
               onChange={(e) => setButtonParams({ ...buttonParams, [String(ub.index)]: e.target.value })}
-              placeholder="ends with…" className={field} />
+              placeholder="ends with…" className={inputCls} />
           </div>
         </div>
       ))}
 
-      {/* Live preview */}
-      <div className="rounded-xl bg-[#e7f5e3] p-4">
-        <p className="mb-2 text-[11px] uppercase tracking-wide text-gray-500">Preview</p>
-        <div className="max-w-sm rounded-lg bg-white p-3 text-sm shadow-sm">
-          {tpl.header_format === "TEXT" && <p className="font-semibold mb-1">{tpl.header_text?.replace(/\{\{1\}\}/g, headerText || "…")}</p>}
-          {need.headerMedia && (
-            <div className="mb-2 rounded bg-gray-100 py-6 text-center text-xs text-gray-500">
-              {mediaName || mediaLink || `[${headerLabel}]`}
-            </div>
-          )}
-          <p className="whitespace-pre-wrap">{renderBody(tpl, params.map((p, i) => p || `{{${need.bodyVars[i]}}}`))}</p>
-          {tpl.footer && <p className="mt-2 text-xs text-gray-500">{tpl.footer}</p>}
-        </div>
-        {(tpl.buttons ?? []).map((b, i) => (
-          <div key={i} className="mt-1 max-w-sm rounded-lg bg-white p-2 text-center text-sm text-blue-600 shadow-sm">
-            {b.type === "URL" ? "🔗 " : b.type === "PHONE_NUMBER" ? "📞 " : ""}{b.text}
-          </div>
-        ))}
+      <div>
+        <p className={labelCls}>Preview</p>
+        <WaPreview
+          headerText={tpl.header_format === "TEXT" ? tpl.header_text?.replace(/\{\{1\}\}/g, headerText || "…") : null}
+          headerMedia={previewMedia}
+          body={renderBody(tpl, params.map((p, i) => p || `{{${need.bodyVars[i]}}}`))}
+          footer={tpl.footer}
+          buttons={tpl.buttons ?? []}
+        />
       </div>
 
-      <p className="text-xs text-gray-500">
+      <p className={hintCls}>
         Only message people who have agreed to hear from you on WhatsApp. Marketing templates need their opt-in.
       </p>
-      {err && <p className="text-sm text-red-600 bg-red-50 rounded p-3">{err}</p>}
-      <button type="submit" disabled={busy || uploading}
-        className="rounded-lg bg-black text-white px-5 py-2 text-sm font-medium disabled:opacity-50">
+      {err && <Alert tone="error">{err}</Alert>}
+      <Button type="submit" disabled={busy || uploading}>
+        <Icon name="send" />
         {busy ? "Sending..." : "Send template"}
-      </button>
+      </Button>
     </form>
   );
 }

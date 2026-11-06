@@ -2,13 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Button, inputCls } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export function SendMessageForm({
   clientId,
   to,
+  disabled = false,
 }: {
   clientId: string;
   to: string;
+  disabled?: boolean;
 }) {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -16,24 +20,18 @@ export function SendMessageForm({
   const router = useRouter();
 
   async function handleSend() {
-    if (!text.trim()) return;
+    if (!text.trim() || disabled) return;
     setError(null);
 
     const res = await fetch("/api/messages/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: clientId,
-        to,
-        type: "text",
-        text,
-      }),
+      body: JSON.stringify({ client_id: clientId, to, type: "text", text }),
     });
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       // Free-form text only works inside the 24h customer-reply window.
-      // Outside it, Meta will reject this and you need a template instead.
       setError(
         data.error === "WhatsApp API error"
           ? "Send failed. If the customer hasn't written in the last 24 hours, send a template instead."
@@ -53,18 +51,16 @@ export function SendMessageForm({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          placeholder="Type a message..."
-          className="flex-1 rounded-lg border px-3 py-2 text-sm"
+          placeholder={disabled ? "Reply window closed. Send a template instead." : "Type a message..."}
+          disabled={disabled}
+          className={inputCls}
         />
-        <button
-          onClick={handleSend}
-          disabled={isPending}
-          className="rounded-lg bg-black text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
-        >
+        <Button onClick={handleSend} disabled={isPending || disabled || !text.trim()}>
+          <Icon name="send" />
           Send
-        </button>
+        </Button>
       </div>
-      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
   );
 }

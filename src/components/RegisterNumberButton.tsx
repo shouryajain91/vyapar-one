@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Alert, Button } from "@/components/ui";
 
 export function RegisterNumberButton() {
   const router = useRouter();
@@ -24,15 +25,11 @@ export function RegisterNumberButton() {
   }
 
   return (
-    <div className="mt-3">
-      <button
-        onClick={register}
-        disabled={busy}
-        className="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
-      >
+    <div>
+      <Button onClick={register} disabled={busy}>
         {busy ? "Registering..." : "Finish registration"}
-      </button>
-      {msg && <p className="mt-2 text-sm text-red-600">{msg}</p>}
+      </Button>
+      {msg && <Alert tone="error" className="mt-3">{msg}</Alert>}
     </div>
   );
 }

@@ -1,6 +1,9 @@
 export const instant = false;
 
+import Link from "next/link";
 import { signupAction } from "./actions";
+import { AuthShell } from "@/components/AuthShell";
+import { Alert, buttonClass, hintCls, inputCls, labelCls } from "@/components/ui";
 
 export default async function SignupPage({
   searchParams,
@@ -10,52 +13,33 @@ export default async function SignupPage({
   const { error } = await searchParams;
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
-      <h1 className="text-2xl font-semibold mb-6">Create your account</h1>
-      {error && (
-        <p className="text-sm text-red-600 mb-4 bg-red-50 rounded p-3">
-          {decodeURIComponent(error)}
-        </p>
-      )}
+    <AuthShell
+      title="Create your account"
+      subtitle="Set up your business on Vyapar One in a minute."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href="/login" className="font-semibold text-brand-700 hover:underline">Log in</Link>
+        </>
+      }
+    >
+      {error && <Alert tone="error" className="mb-4">{decodeURIComponent(error)}</Alert>}
       <form action={signupAction} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">
-            Business name
-          </label>
-          <input
-            name="business_name"
-            required
-            className="w-full rounded-lg border px-3 py-2"
-            placeholder="Acme Traders"
-          />
+          <label className={labelCls}>Business name</label>
+          <input name="business_name" required className={inputCls} placeholder="Acme Traders" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input
-            name="email"
-            type="email"
-            required
-            className="w-full rounded-lg border px-3 py-2"
-            placeholder="you@business.com"
-          />
+          <label className={labelCls}>Email</label>
+          <input name="email" type="email" required autoComplete="email" className={inputCls} placeholder="you@business.com" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Password</label>
-          <input
-            name="password"
-            type="password"
-            required
-            minLength={6}
-            className="w-full rounded-lg border px-3 py-2"
-          />
+          <label className={labelCls}>Password</label>
+          <input name="password" type="password" required minLength={6} autoComplete="new-password" className={inputCls} />
+          <p className={hintCls}>At least 6 characters.</p>
         </div>
-        <button
-          type="submit"
-          className="w-full rounded-lg bg-black text-white py-2 font-medium"
-        >
-          Sign up
-        </button>
+        <button type="submit" className={buttonClass("primary", "md", "w-full")}>Create account</button>
       </form>
-    </main>
+    </AuthShell>
   );
 }

@@ -1,6 +1,9 @@
 export const instant = false;
 
+import Link from "next/link";
 import { loginAction } from "./actions";
+import { AuthShell } from "@/components/AuthShell";
+import { Alert, buttonClass, inputCls, labelCls } from "@/components/ui";
 
 export default async function LoginPage({
   searchParams,
@@ -10,45 +13,33 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
-      <h1 className="text-2xl font-semibold mb-6">Log in</h1>
-      {error && (
-        <p className="text-sm text-red-600 mb-4 bg-red-50 rounded p-3">
-          {decodeURIComponent(error)}
-        </p>
-      )}
+    <AuthShell
+      title="Log in"
+      subtitle="Welcome back. Log in to manage your WhatsApp conversations."
+      footer={
+        <>
+          New to Vyapar One?{" "}
+          <Link href="/signup" className="font-semibold text-brand-700 hover:underline">Create an account</Link>
+        </>
+      }
+    >
+      {error && <Alert tone="error" className="mb-4">{decodeURIComponent(error)}</Alert>}
       <form action={loginAction} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input
-            name="email"
-            type="email"
-            required
-            className="w-full rounded-lg border px-3 py-2"
-          />
+          <label className={labelCls}>Email</label>
+          <input name="email" type="email" required autoComplete="email" className={inputCls} />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Password</label>
-          <input
-            name="password"
-            type="password"
-            required
-            className="w-full rounded-lg border px-3 py-2"
-          />
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="text-sm font-medium text-slate-700">Password</label>
+            <Link href="/forgot-password" className="text-sm font-medium text-brand-700 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+          <input name="password" type="password" required autoComplete="current-password" className={inputCls} />
         </div>
-        <button
-          type="submit"
-          className="w-full rounded-lg bg-black text-white py-2 font-medium"
-        >
-          Log in
-        </button>
+        <button type="submit" className={buttonClass("primary", "md", "w-full")}>Log in</button>
       </form>
-      <p className="text-sm text-gray-600 mt-4">
-        <a href="/forgot-password" className="underline">Forgot password?</a>
-      </p>
-      <p className="text-sm text-gray-600 mt-4">
-        No account? <a href="/signup" className="underline">Sign up</a>
-      </p>
-    </main>
+    </AuthShell>
   );
 }
