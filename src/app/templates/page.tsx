@@ -80,7 +80,15 @@ export default async function TemplatesPage() {
             {t.status === "REJECTED" && t.rejected_reason && t.rejected_reason !== "NONE" && (
               <p className="mt-2 text-xs text-red-700">Reason: {t.rejected_reason}</p>
             )}
-            <div className="mt-3">
+            <div className="mt-3 flex items-center gap-4">
+              {t.status === "APPROVED" && (
+                <Link
+                  href={`/inbox/new?template=${encodeURIComponent(t.name)}&language=${encodeURIComponent(t.language)}`}
+                  className="text-xs underline"
+                >
+                  Send
+                </Link>
+              )}
               <DeleteTemplateButton name={t.name} />
             </div>
           </li>

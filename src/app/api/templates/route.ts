@@ -66,7 +66,13 @@ export async function POST(req: NextRequest) {
         header_format: input.header && input.header.format !== "NONE" ? input.header.format : null,
         header_text: input.header?.format === "TEXT" ? (input.header.text ?? "").trim() : null,
         footer: (input.footer ?? "").trim() || null,
-        buttons: (input.buttons ?? []).length ? input.buttons : null,
+        buttons: (input.buttons ?? []).length
+          ? [...(input.buttons ?? [])].sort(
+              (a, b) =>
+                ({ QUICK_REPLY: 0, URL: 1, PHONE_NUMBER: 2 }[a.type] -
+                  { QUICK_REPLY: 0, URL: 1, PHONE_NUMBER: 2 }[b.type])
+            )
+          : null,
         rejected_reason: null,
         synced_at: new Date().toISOString(),
       },

@@ -5,7 +5,7 @@ import { decrypt } from "@/lib/crypto";
 export const GRAPH_VERSION = "v21.0";
 
 export type WaContext =
-  | { ok: true; clientId: string; wabaId: string; accessToken: string }
+  | { ok: true; clientId: string; wabaId: string; phoneNumberId: string; accessToken: string }
   | { ok: false; status: number; error: string };
 
 /** Resolves the logged-in user's client and its WhatsApp account. */
@@ -26,7 +26,7 @@ export async function getWaContext(): Promise<WaContext> {
 
   const { data: account } = await db
     .from("whatsapp_accounts")
-    .select("waba_id, access_token_encrypted")
+    .select("waba_id, phone_number_id, access_token_encrypted")
     .eq("client_id", appUser.client_id)
     .maybeSingle();
   if (!account) return { ok: false, status: 404, error: "Connect WhatsApp first" };
@@ -35,6 +35,7 @@ export async function getWaContext(): Promise<WaContext> {
     ok: true,
     clientId: appUser.client_id,
     wabaId: account.waba_id,
+    phoneNumberId: account.phone_number_id,
     accessToken: decrypt(account.access_token_encrypted),
   };
 }

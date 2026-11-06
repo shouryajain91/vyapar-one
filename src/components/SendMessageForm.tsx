@@ -36,8 +36,8 @@ export function SendMessageForm({
       // Outside it, Meta will reject this and you need a template instead.
       setError(
         data.error === "WhatsApp API error"
-          ? "Send failed — you may be outside the 24-hour window and need to use a template."
-          : "Send failed. Please try again."
+          ? "Send failed. If the customer hasn't written in the last 24 hours, send a template instead."
+          : data.error ?? "Send failed. Please try again."
       );
       return;
     }
