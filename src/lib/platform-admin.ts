@@ -24,12 +24,14 @@ export async function requirePlatformAdmin() {
   return { user, email: user.email! };
 }
 
-/** Records that a platform admin viewed a client's chats. */
+/** Records a platform admin action (viewing chats, resetting a password). */
 export async function logAdminAccess(opts: {
   adminUserId: string;
   adminEmail: string;
   clientId: string;
   customerNumber?: string | null;
+  action?: string;
+  targetUserId?: string | null;
 }) {
   try {
     await supabaseAdmin().from("admin_access_log").insert({
@@ -37,6 +39,8 @@ export async function logAdminAccess(opts: {
       admin_email: opts.adminEmail,
       client_id: opts.clientId,
       customer_number: opts.customerNumber ?? null,
+      action: opts.action ?? "view_chats",
+      target_user_id: opts.targetUserId ?? null,
     });
   } catch (err) {
     console.error("Failed to write admin access log:", err);

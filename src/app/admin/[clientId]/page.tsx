@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { logAdminAccess, requirePlatformAdmin } from "@/lib/platform-admin";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { ChatThread } from "@/components/ChatThread";
+import { AdminUserActions } from "@/components/AdminUserActions";
 import { groupConversations, preview, type MessageRow } from "@/lib/conversations";
 
 export default async function AdminClientPage({
@@ -32,6 +33,11 @@ export default async function AdminClientPage({
     .eq("client_id", clientId)
     .order("created_at", { ascending: true });
 
+  const { data: users } = await db
+    .from("app_users")
+    .select("user_id, email, role")
+    .eq("client_id", clientId);
+
   const conversations = groupConversations((data ?? []) as MessageRow[]);
   const active = conversations.find((c) => c.customerNumber === activeNumber);
 
@@ -51,6 +57,22 @@ export default async function AdminClientPage({
       <p className="text-sm text-gray-600 mb-6">
         {client.contact_email} · read-only, access is logged
       </p>
+      <section className="mb-8 rounded-xl border p-4">
+        <h2 className="font-medium mb-1">Users</h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Password help for this business&apos;s logins. Every action is logged.
+        </p>
+        <ul className="divide-y">
+          {(users ?? []).map((u) => (
+            <li key={u.user_id} className="py-3">
+              <p className="text-sm">
+                {u.email} <span className="text-xs text-gray-500">({u.role})</span>
+              </p>
+              <AdminUserActions userId={u.user_id} email={u.email} />
+            </li>
+          ))}
+        </ul>
+      </section>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <aside className="md:col-span-1 md:border-r md:pr-4">
           <ul className="space-y-1">
