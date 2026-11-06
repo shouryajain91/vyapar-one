@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { supabaseRSC } from "@/lib/supabase-rsc";
+import { getSessionClientId, getSessionUser } from "@/lib/session";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { loadAccounts } from "@/lib/wa-accounts";
 
@@ -10,34 +10,16 @@ import { loadAccounts } from "@/lib/wa-accounts";
  * current RLS policies key off app_users, which this already checks).
  */
 export async function getCurrentClient() {
-  const supabase = await supabaseRSC();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  const clientId = await getSessionClientId();
+  if (!clientId) redirect("/login");
 
-  if (!user) {
-    redirect("/login");
-  }
+  // Independent lookups run in parallel.
+  const [{ data: client }, { accounts: whatsappAccounts, active: whatsappAccount }] = await Promise.all([
+    supabaseAdmin().from("clients").select("*").eq("id", clientId).single(),
+    loadAccounts(clientId!),
+  ]);
 
-  const admin = supabaseAdmin();
-  const { data: appUser } = await admin
-    .from("app_users")
-    .select("client_id")
-    .eq("user_id", user!.id)
-    .single();
-
-  if (!appUser) {
-    redirect("/login");
-  }
-
-  const { data: client } = await admin
-    .from("clients")
-    .select("*")
-    .eq("id", appUser!.client_id)
-    .single();
-
-  // A business can have several numbers; whatsappAccount is the active one.
-  const { accounts: whatsappAccounts, active: whatsappAccount } = await loadAccounts(appUser!.client_id);
-
-  return { user, client, whatsappAccount, whatsappAccounts };
+  return { user: user!, client, whatsappAccount, whatsappAccounts };
 }

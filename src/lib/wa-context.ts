@@ -1,5 +1,5 @@
 import { supabaseRSC } from "@/lib/supabase-rsc";
-import { supabaseAdmin } from "@/lib/supabase-server";
+import { getSessionClientId } from "@/lib/session";
 import { decrypt } from "@/lib/crypto";
 import { loadAccounts } from "@/lib/wa-accounts";
 
@@ -17,20 +17,15 @@ export async function getWaContext(): Promise<WaContext> {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, status: 401, error: "Not signed in" };
 
-  const db = supabaseAdmin();
-  const { data: appUser } = await db
-    .from("app_users")
-    .select("client_id")
-    .eq("user_id", user.id)
-    .single();
-  if (!appUser) return { ok: false, status: 403, error: "No client for user" };
+  const clientId = await getSessionClientId();
+  if (!clientId) return { ok: false, status: 403, error: "No client for user" };
 
-  const { active: account } = await loadAccounts(appUser.client_id);
+  const { active: account } = await loadAccounts(clientId);
   if (!account) return { ok: false, status: 404, error: "Connect WhatsApp first" };
 
   return {
     ok: true,
-    clientId: appUser.client_id,
+    clientId,
     wabaId: account.waba_id,
     phoneNumberId: account.phone_number_id,
     accessToken: decrypt(account.access_token_encrypted),

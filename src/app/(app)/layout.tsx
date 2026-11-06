@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { NavLink } from "@/components/NavLink";
 import { Icon } from "@/components/icons";
 import { buttonClass } from "@/components/ui";
-import { supabaseRSC } from "@/lib/supabase-rsc";
+import { getSessionClientId, getSessionUser } from "@/lib/session";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { isPlatformAdminEmail } from "@/lib/platform-admin";
 import { DemoCaptions } from "@/components/DemoCaptions";
@@ -13,10 +13,7 @@ import { logoutAction } from "./actions";
 
 /** Platform-admin link: only shown to emails in PLATFORM_ADMIN_EMAILS. */
 async function AdminNav() {
-  const supabase = await supabaseRSC();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!isPlatformAdminEmail(user?.email)) return null;
   return (
     <div className="pt-4">
@@ -30,20 +27,14 @@ async function AdminNav() {
 
 /** Business name, email and Log out. */
 async function SidebarUser() {
-  const supabase = await supabaseRSC();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return null;
+  const clientId = await getSessionClientId();
 
-  let business: string | null = null;
-  const { data: appUser } = await supabaseAdmin()
-    .from("app_users")
-    .select("clients(business_name)")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  const c = appUser?.clients as { business_name?: string } | { business_name?: string }[] | null | undefined;
-  business = (Array.isArray(c) ? c[0]?.business_name : c?.business_name) ?? null;
+  const { data: client } = clientId
+    ? await supabaseAdmin().from("clients").select("business_name").eq("id", clientId).maybeSingle()
+    : { data: null };
+  const business: string | null = client?.business_name ?? null;
 
   return (
     <div className="border-t border-slate-200 p-3">
