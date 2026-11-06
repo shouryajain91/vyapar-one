@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { encrypt } from "@/lib/crypto";
+import { generatePin, registerPhoneNumber } from "@/lib/whatsapp-register";
 
 const GRAPH_VERSION = "v21.0";
 
@@ -62,21 +63,13 @@ export async function POST(req: NextRequest) {
   }
 
   // Register the number on the Cloud API (required before it can send/receive).
+  // Meta requires a 6-digit PIN; we generate one and keep it (encrypted).
+  const pin = generatePin();
+  let registered = false;
   try {
-    await fetch(
-      `https://graph.facebook.com/${GRAPH_VERSION}/${phone_number_id}/register`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ messaging_product: "whatsapp" }),
-      }
-    );
+    registered = (await registerPhoneNumber(phone_number_id, accessToken, pin)).ok;
   } catch (err) {
-    // Not fatal — number may already be registered. Log and continue.
-    console.warn("Phone number register call failed (may be benign):", err);
+    console.error("Phone number register call threw:", err);
   }
 
   // Subscribe our app to THIS WABA's webhook events. The app-level webhook
@@ -113,7 +106,8 @@ export async function POST(req: NextRequest) {
         phone_number_id,
         display_name: displayName,
         access_token_encrypted: encrypt(accessToken),
-        verification_status: "connected",
+        verification_status: registered ? "connected" : "pending_registration",
+        registration_pin_encrypted: encrypt(pin),
       },
       { onConflict: "phone_number_id" }
     );
@@ -131,5 +125,9 @@ export async function POST(req: NextRequest) {
     .update({ status: "active" })
     .eq("id", client_id);
 
-  return NextResponse.json({ success: true, display_name: displayName });
+  return NextResponse.json({
+    success: true,
+    registered,
+    display_name: displayName,
+  });
 }

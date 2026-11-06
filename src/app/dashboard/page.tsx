@@ -2,6 +2,7 @@ export const instant = false;
 
 import { getCurrentClient } from "@/lib/current-client";
 import { ConnectWhatsAppButton } from "@/components/ConnectWhatsAppButton";
+import { RegisterNumberButton } from "@/components/RegisterNumberButton";
 import Link from "next/link";
 
 export default async function DashboardPage() {
@@ -25,6 +26,15 @@ export default async function DashboardPage() {
             <p className="text-xs text-gray-500 mt-1">
               Phone number ID: {whatsappAccount.phone_number_id}
             </p>
+            {whatsappAccount.verification_status === "pending_registration" && (
+              <div className="mt-3 rounded-lg bg-amber-50 p-3 text-amber-800">
+                <p>
+                  Your number is linked but not yet registered with WhatsApp,
+                  so it can&apos;t send or receive messages.
+                </p>
+                <RegisterNumberButton />
+              </div>
+            )}
           </div>
         ) : (
           <>
