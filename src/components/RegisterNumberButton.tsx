@@ -1,5 +1,6 @@
 "use client";
 
+import { showDemoCaption, PERM_MGMT } from "@/lib/demo";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button } from "@/components/ui";
@@ -16,7 +17,10 @@ export function RegisterNumberButton() {
       const res = await fetch("/api/onboarding/register-number", { method: "POST" });
       const data = await res.json();
       if (!res.ok) setMsg(data.error ?? "Registration failed");
-      else router.refresh();
+      else {
+        showDemoCaption({ text: "Phone number registered with the WhatsApp Cloud API.", permission: PERM_MGMT });
+        router.refresh();
+      }
     } catch {
       setMsg("Registration failed");
     } finally {

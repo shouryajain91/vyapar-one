@@ -1,5 +1,6 @@
 "use client";
 
+import { showDemoCaption, PERM_MGMT } from "@/lib/demo";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -118,6 +119,7 @@ export function NewTemplateForm() {
     const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) return setErr(data.error ?? "Could not create the template");
+    showDemoCaption({ text: "Template submitted to Meta. It shows as Pending until Meta approves it.", permission: PERM_MGMT, ms: 8000 });
     router.push("/templates");
     router.refresh();
   }

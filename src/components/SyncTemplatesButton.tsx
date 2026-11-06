@@ -1,5 +1,6 @@
 "use client";
 
+import { showDemoCaption, PERM_MGMT } from "@/lib/demo";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
@@ -20,6 +21,7 @@ export function SyncTemplatesButton() {
         setMsg(data.error ?? "Sync failed");
       } else {
         setMsg(`Synced ${data.count} template${data.count === 1 ? "" : "s"}`);
+        showDemoCaption({ text: `Fetched ${data.count} template${data.count === 1 ? "" : "s"} from the WhatsApp Business account, with their approval status.`, permission: PERM_MGMT });
         router.refresh();
       }
     } catch {

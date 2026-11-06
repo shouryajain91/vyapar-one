@@ -1,5 +1,6 @@
 "use client";
 
+import { showDemoCaption, PERM_MGMT } from "@/lib/demo";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
@@ -20,6 +21,7 @@ export function DeleteTemplateButton({ name }: { name: string }) {
       const data = await res.json().catch(() => ({}));
       return setErr(data.error ?? "Delete failed");
     }
+    showDemoCaption({ text: "Template deleted from the WhatsApp Business account.", permission: PERM_MGMT });
     router.refresh();
   }
 

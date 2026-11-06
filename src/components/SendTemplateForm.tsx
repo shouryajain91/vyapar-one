@@ -1,5 +1,6 @@
 "use client";
 
+import { showDemoCaption, PERM_MSG } from "@/lib/demo";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SAMPLE_RULES } from "@/lib/template-validate";
@@ -90,6 +91,7 @@ export function SendTemplateForm({
     const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) return setErr(data.message ?? data.error ?? "Send failed");
+    showDemoCaption({ text: "Template message sent to the customer through the WhatsApp Cloud API.", permission: PERM_MSG, ms: 8000 });
     router.push(`/inbox?with=${encodeURIComponent(data.to)}`);
     router.refresh();
   }

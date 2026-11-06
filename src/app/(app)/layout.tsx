@@ -7,6 +7,8 @@ import { buttonClass } from "@/components/ui";
 import { supabaseRSC } from "@/lib/supabase-rsc";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { isPlatformAdminEmail } from "@/lib/platform-admin";
+import { DemoCaptions } from "@/components/DemoCaptions";
+import { DemoToggle } from "@/components/DemoToggle";
 import { logoutAction } from "./actions";
 
 /** Platform-admin link: only shown to emails in PLATFORM_ADMIN_EMAILS. */
@@ -54,6 +56,7 @@ async function SidebarUser() {
           <p className="truncate text-xs text-slate-500">{user.email}</p>
         </div>
       </div>
+      <DemoToggle />
       <form action={logoutAction}>
         <button type="submit" className={buttonClass("secondary", "md", "w-full")}>
           <Icon name="logout" />
@@ -88,5 +91,10 @@ function SidebarContent() {
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell sidebar={<SidebarContent />}>{children}</AppShell>;
+  return (
+    <>
+      <AppShell sidebar={<SidebarContent />}>{children}</AppShell>
+      <DemoCaptions />
+    </>
+  );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { showDemoCaption, PERM_MSG } from "@/lib/demo";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, inputCls } from "@/components/ui";
@@ -40,6 +41,7 @@ export function SendMessageForm({
       return;
     }
 
+    showDemoCaption({ text: "Reply sent to the customer inside the 24-hour window.", permission: PERM_MSG });
     setText("");
     startTransition(() => router.refresh());
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import { showDemoCaption, PERM_MGMT, PERM_MSG } from "@/lib/demo";
 import { buttonClass } from "@/components/ui";
 import { useEffect, useState, useCallback } from "react";
 
@@ -117,6 +118,7 @@ export function ConnectWhatsAppButton({ clientId }: { clientId: string }) {
         });
         if (res.ok) {
           setStatus("connected");
+          showDemoCaption({ text: "Connected. The business account and phone number are now linked to this workspace.", permission: PERM_MGMT, ms: 7000 });
           window.sessionStorage.removeItem("wa_signup_data");
         } else {
           setStatus("error");
@@ -132,6 +134,7 @@ export function ConnectWhatsAppButton({ clientId }: { clientId: string }) {
   const handleConnect = useCallback(() => {
     if (!window.FB) return;
     setStatus("connecting");
+    showDemoCaption({ text: "Meta Embedded Signup opens. The business logs in, picks its WhatsApp Business account and phone number, and grants access.", permission: `${PERM_MGMT} + ${PERM_MSG}`, ms: 12000 });
 
     // IMPORTANT: this callback must be a plain (non-async) function.
     // The Facebook SDK does a strict typeof/constructor check on the
