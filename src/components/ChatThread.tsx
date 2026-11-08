@@ -4,6 +4,14 @@ import { useEffect, useRef } from "react";
 import { Badge } from "@/components/ui";
 import { formatDateTime } from "@/lib/format";
 import type { MessageRow } from "@/lib/conversations";
+import { explainError } from "@/lib/wa-errors";
+
+const STATUS_LABEL: Record<string, string> = {
+  sent: "Sent",
+  delivered: "Delivered",
+  read: "Read",
+  failed: "Failed",
+};
 
 /** Messages for one conversation. Scrolls to the newest message. */
 export function ChatThread({ messages }: { messages: MessageRow[] }) {
@@ -34,8 +42,22 @@ export function ChatThread({ messages }: { messages: MessageRow[] }) {
                 <p className="whitespace-pre-wrap break-words">{m.body ?? `[${m.message_type}]`}</p>
                 <p className={`mt-1 text-[11px] ${m.status === "failed" ? "text-red-600" : "text-slate-500"}`}>
                   {formatDateTime(m.created_at)}
-                  {out && m.status ? ` · ${m.status}` : ""}
+                  {out && m.status ? ` · ${STATUS_LABEL[m.status] ?? m.status}` : ""}
+                  {out && m.status === "read" && m.read_at ? ` at ${formatDateTime(m.read_at)}` : ""}
+                  {out && m.status === "delivered" && m.delivered_at ? ` at ${formatDateTime(m.delivered_at)}` : ""}
                 </p>
+                {out && m.status === "failed" && (
+                  <div className="mt-1 rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-800">
+                    <p>{explainError(m.error_code, m.error_message)}</p>
+                    {(m.error_code || m.error_message) && (
+                      <p className="mt-0.5 text-[11px] text-red-600/80">
+                        {m.error_code ? `Code ${m.error_code}` : ""}
+                        {m.error_code && m.error_message ? ": " : ""}
+                        {m.error_message ?? ""}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );

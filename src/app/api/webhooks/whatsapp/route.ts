@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { STATUS_RANK } from "@/lib/wa-errors";
 
 /**
  * GET: Meta's webhook verification handshake.
@@ -126,11 +127,36 @@ async function processPayload(payload: WhatsAppWebhookPayload) {
 
       // Status updates for messages we sent (sent/delivered/read/failed)
       for (const status of value.statuses ?? []) {
-        await db
+        const { data: row } = await db
           .from("messages")
-          .update({ status: status.status })
+          .select("id, status")
           .eq("wa_message_id", status.id)
-          .eq("client_id", clientId);
+          .eq("client_id", clientId)
+          .maybeSingle();
+        if (!row) continue;
+
+        const incoming = status.status;
+        const at = status.timestamp ? new Date(Number(status.timestamp) * 1000).toISOString() : new Date().toISOString();
+        const update: Record<string, unknown> = {};
+
+        if (incoming === "failed") {
+          const err = status.errors?.[0];
+          update.status = "failed";
+          update.error_code = err?.code != null ? String(err.code) : null;
+          update.error_message =
+            [err?.error_data?.details ?? err?.message ?? err?.title].filter(Boolean).join("") || null;
+        } else {
+          // Webhooks can arrive out of order: never move a message backwards.
+          const cur = STATUS_RANK[row.status ?? ""] ?? 0;
+          const next = STATUS_RANK[incoming] ?? 0;
+          if (row.status !== "failed" && next > cur) update.status = incoming;
+          if (incoming === "delivered") update.delivered_at = at;
+          if (incoming === "read") {
+            update.read_at = at;
+            update.delivered_at = update.delivered_at ?? at;
+          }
+        }
+        if (Object.keys(update).length) await db.from("messages").update(update).eq("id", row.id);
       }
     }
   }
@@ -192,7 +218,12 @@ interface WhatsAppChangeValue {
   metadata?: { phone_number_id?: string };
   messages?: WhatsAppInboundMessage[];
   contacts?: Array<{ wa_id?: string; profile?: { name?: string } }>;
-  statuses?: Array<{ id: string; status: string }>;
+  statuses?: Array<{
+    id: string;
+    status: string;
+    timestamp?: string;
+    errors?: Array<{ code?: number; title?: string; message?: string; error_data?: { details?: string } }>;
+  }>;
   // message_template_status_update fields
   event?: string;
   message_template_name?: string;

@@ -34,7 +34,7 @@ export default async function InboxPage({
 
   const admin = supabaseAdmin();
   const [{ data }, { data: approved }] = await Promise.all([
-    admin.from("messages").select("id, direction, from_number, to_number, message_type, body, contact_name, status, created_at").eq("client_id", client!.id).eq("phone_number_id", whatsappAccount.phone_number_id).order("created_at", { ascending: true }),
+    admin.from("messages").select("id, direction, from_number, to_number, message_type, body, contact_name, status, error_code, error_message, delivered_at, read_at, created_at").eq("client_id", client!.id).eq("phone_number_id", whatsappAccount.phone_number_id).order("created_at", { ascending: true }),
     admin
       .from("templates")
       .select("name, language, status, body, header_format, header_text, footer, buttons")

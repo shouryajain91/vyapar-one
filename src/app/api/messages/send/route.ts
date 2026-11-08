@@ -121,6 +121,20 @@ export async function POST(req: NextRequest) {
   if (!graphRes.ok) {
     console.error("WhatsApp send failed:", JSON.stringify(graphData));
     const msg: string | undefined = graphData?.error?.error_user_msg ?? graphData?.error?.message;
+    // Keep a record of the failed attempt so it shows in the chat with the reason.
+    await db.from("messages").insert({
+      client_id,
+      direction: "outbound",
+      from_number: account.phone_number_id,
+      phone_number_id: account.phone_number_id,
+      to_number: to,
+      message_type: type,
+      body: storedBody,
+      status: "failed",
+      error_code: graphData?.error?.code != null ? String(graphData.error.code) : null,
+      error_message: [msg, graphData?.error?.error_data?.details].filter(Boolean).join(" — ") || null,
+      raw_payload: payload,
+    });
     return NextResponse.json(
       { error: "WhatsApp API error", message: msg, details: graphData },
       { status: graphRes.status }

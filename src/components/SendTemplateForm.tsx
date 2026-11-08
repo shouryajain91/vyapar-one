@@ -90,7 +90,10 @@ export function SendTemplateForm({
     });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
-    if (!res.ok) return setErr(data.message ?? data.error ?? "Send failed");
+    if (!res.ok) {
+      router.refresh(); // the failed attempt is saved and shows in the chat
+      return setErr(data.message ?? data.error ?? "Send failed");
+    }
     showDemoCaption({ text: "Template message sent to the customer through the WhatsApp Cloud API.", permission: PERM_MSG, ms: 8000 });
     router.push(`/inbox?with=${encodeURIComponent(data.to)}`);
     router.refresh();

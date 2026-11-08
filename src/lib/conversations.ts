@@ -6,6 +6,10 @@ export interface MessageRow {
   message_type: string | null;
   body: string | null;
   contact_name?: string | null;
+  error_code?: string | null;
+  error_message?: string | null;
+  delivered_at?: string | null;
+  read_at?: string | null;
   status: string | null;
   created_at: string;
 }

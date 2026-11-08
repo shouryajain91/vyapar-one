@@ -35,9 +35,11 @@ export function SendMessageForm({
       // Free-form text only works inside the 24h customer-reply window.
       setError(
         data.error === "WhatsApp API error"
-          ? "Send failed. If the customer hasn't written in the last 24 hours, send a template instead."
+          ? `Send failed${data.message ? `: ${data.message}` : ""}. If the customer hasn't written in the last 24 hours, send a template instead.`
           : data.error ?? "Send failed. Please try again."
       );
+      // The failed attempt is saved; show it in the thread with its reason.
+      startTransition(() => router.refresh());
       return;
     }
 
