@@ -1,5 +1,6 @@
 export const ICONS = {
   chart: "M4 20V10 M10 20V4 M16 20v-7 M22 20H2",
+  ban: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z M5.6 5.6l12.8 12.8",
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z",
   chat: "M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12Z",
   template: "M7 3h7l5 5v13H7V3Z M14 3v5h5 M10 13h6 M10 17h6",

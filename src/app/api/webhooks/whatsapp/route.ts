@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { STATUS_RANK } from "@/lib/wa-errors";
+import { classifyOptMessage } from "@/lib/optout";
 
 /**
  * GET: Meta's webhook verification handshake.
@@ -123,6 +124,33 @@ async function processPayload(payload: WhatsAppWebhookPayload) {
           status: "received",
           raw_payload: msg,
         });
+
+        // STOP / unsubscribe: remember it so this customer is excluded from sends.
+        const optAction = classifyOptMessage(extractBody(msg));
+        if (optAction === "out") {
+          await db.from("opt_outs").upsert(
+            {
+              client_id: clientId,
+              phone: msg.from,
+              contact_name: names.get(msg.from) ?? null,
+              status: "opted_out",
+              source: "keyword",
+              reason_text: (extractBody(msg) ?? "").slice(0, 200),
+              opted_out_at: new Date().toISOString(),
+              opted_in_at: null,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "client_id,phone" }
+          );
+        } else if (optAction === "in") {
+          // Only matters if they were opted out before.
+          await db
+            .from("opt_outs")
+            .update({ status: "opted_in", opted_in_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .eq("client_id", clientId)
+            .eq("phone", msg.from)
+            .eq("status", "opted_out");
+        }
       }
 
       // Status updates for messages we sent (sent/delivered/read/failed)

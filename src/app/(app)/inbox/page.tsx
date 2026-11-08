@@ -33,7 +33,7 @@ export default async function InboxPage({
   }
 
   const admin = supabaseAdmin();
-  const [{ data }, { data: approved }] = await Promise.all([
+  const [{ data }, { data: approved }, { data: optedOutRows }] = await Promise.all([
     admin.from("messages").select("id, direction, from_number, to_number, message_type, body, contact_name, status, error_code, error_message, delivered_at, read_at, created_at").eq("client_id", client!.id).eq("phone_number_id", whatsappAccount.phone_number_id).order("created_at", { ascending: true }),
     admin
       .from("templates")
@@ -41,7 +41,9 @@ export default async function InboxPage({
       .eq("client_id", client!.id)
       .eq("status", "APPROVED")
       .order("name"),
+    admin.from("opt_outs").select("phone").eq("client_id", client!.id).eq("status", "opted_out"),
   ]);
+  const optedOut = new Set((optedOutRows ?? []).map((o) => o.phone as string));
 
   const conversations = groupConversations((data ?? []) as MessageRow[]);
   const active = conversations.find((c) => c.customerNumber === activeNumber);
@@ -91,7 +93,10 @@ export default async function InboxPage({
                         <span className="truncate text-sm font-semibold text-slate-900">{c.customerName ?? formatNumber(c.customerNumber)}</span>
                         <span className="shrink-0 text-xs text-slate-400">{formatListTime(c.last.created_at, now)}</span>
                       </span>
-                      <span className="block truncate text-sm text-slate-500">{preview(c.last)}</span>
+                      <span className="block truncate text-sm text-slate-500">
+                        {optedOut.has(c.customerNumber) && <span className="mr-1 font-medium text-red-600">Opted out ·</span>}
+                        {preview(c.last)}
+                      </span>
                     </span>
                   </Link>
                 </li>
@@ -125,7 +130,7 @@ export default async function InboxPage({
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-slate-900">{active.customerName ?? formatNumber(active.customerNumber)}</p>
-                <p className="whitespace-nowrap text-xs text-slate-500">{active.customerName ? `${formatNumber(active.customerNumber)} · ` : ""}{active.messages.length} messages</p>
+                <p className="whitespace-nowrap text-xs text-slate-500">{active.customerName ? `${formatNumber(active.customerNumber)} · ` : ""}{active.messages.length} messages{optedOut.has(active.customerNumber) && <span className="ml-2 font-medium text-red-600">Opted out</span>}</p>
               </div>
               <span className="shrink-0 whitespace-nowrap">
                 {win.open ? (

@@ -65,6 +65,26 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Never send a template to someone who asked to stop (STOP / unsubscribe).
+  if (type === "template") {
+    const { data: optedOut } = await db
+      .from("opt_outs")
+      .select("id")
+      .eq("client_id", client_id)
+      .eq("phone", to)
+      .eq("status", "opted_out")
+      .maybeSingle();
+    if (optedOut) {
+      return NextResponse.json(
+        {
+          error: "opted_out",
+          message: "This customer has asked to stop receiving messages, so the template wasn't sent. You can opt them back in from the Opt-outs page if they asked to hear from you again.",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   const accessToken = decrypt(account.access_token_encrypted);
 
   let payload: Record<string, unknown>;

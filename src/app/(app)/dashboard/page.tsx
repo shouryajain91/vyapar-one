@@ -3,6 +3,7 @@ export const instant = false;
 import { getCurrentClient } from "@/lib/current-client";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { NumberHealth } from "@/components/NumberHealth";
+import { AccountReadiness } from "@/components/AccountReadiness";
 import { ConnectWhatsAppButton } from "@/components/ConnectWhatsAppButton";
 import { RegisterNumberButton } from "@/components/RegisterNumberButton";
 import { setActiveNumberAction } from "../actions";
@@ -161,6 +162,7 @@ export default async function DashboardPage() {
                 The inbox, templates and new messages use the number marked &ldquo;In use&rdquo;.
               </p>
               {whatsappAccount!.verification_status === "connected" && <NumberHealth />}
+              {whatsappAccount!.verification_status === "connected" && <AccountReadiness />}
               <div className="mt-4">
                 <ConnectWhatsAppButton clientId={client!.id} label="Add another number" variant="secondary" />
               </div>
