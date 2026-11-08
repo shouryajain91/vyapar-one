@@ -133,7 +133,8 @@ export async function POST(req: NextRequest) {
       status: "failed",
       error_code: graphData?.error?.code != null ? String(graphData.error.code) : null,
       error_message: [msg, graphData?.error?.error_data?.details].filter(Boolean).join(" — ") || null,
-      raw_payload: payload,
+      template_name: (payload as { template?: { name?: string } }).template?.name ?? null,
+    raw_payload: payload,
     });
     return NextResponse.json(
       { error: "WhatsApp API error", message: msg, details: graphData },
@@ -153,6 +154,7 @@ export async function POST(req: NextRequest) {
     message_type: type,
     body: storedBody,
     status: "sent",
+    template_name: (payload as { template?: { name?: string } }).template?.name ?? null,
     raw_payload: payload,
   });
 

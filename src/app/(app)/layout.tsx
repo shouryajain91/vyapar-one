@@ -70,6 +70,7 @@ function SidebarContent() {
         <NavLink href="/dashboard" icon={<Icon name="home" className="h-5 w-5" />}>Dashboard</NavLink>
         <NavLink href="/inbox" icon={<Icon name="chat" className="h-5 w-5" />}>Inbox</NavLink>
         <NavLink href="/templates" icon={<Icon name="template" className="h-5 w-5" />}>Templates</NavLink>
+        <NavLink href="/reports" icon={<Icon name="chart" className="h-5 w-5" />}>Reports</NavLink>
         <Suspense fallback={null}>
           <AdminNav />
         </Suspense>
