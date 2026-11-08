@@ -83,7 +83,7 @@ export default async function AdminClientPage({
                   className={`block px-4 py-3 ${c.customerNumber === activeNumber ? "bg-brand-50" : "hover:bg-slate-50"}`}
                 >
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-sm font-semibold text-slate-900">{formatNumber(c.customerNumber)}</span>
+                    <span className="truncate text-sm font-semibold text-slate-900">{c.customerName ?? formatNumber(c.customerNumber)}</span>
                     <span className="shrink-0 text-xs text-slate-400">{formatListTime(c.last.created_at, now)}</span>
                   </span>
                   <span className="block truncate text-sm text-slate-500">{preview(c.last)}</span>

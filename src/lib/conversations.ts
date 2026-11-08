@@ -5,12 +5,15 @@ export interface MessageRow {
   to_number: string | null;
   message_type: string | null;
   body: string | null;
+  contact_name?: string | null;
   status: string | null;
   created_at: string;
 }
 
 export interface Conversation {
   customerNumber: string;
+  /** The customer's WhatsApp profile name, from their latest message that had one. */
+  customerName: string | null;
   messages: MessageRow[];
   last: MessageRow;
 }
@@ -29,7 +32,8 @@ export function groupConversations(messages: MessageRow[]): Conversation[] {
       const sorted = [...msgs].sort((a, b) =>
         a.created_at.localeCompare(b.created_at)
       );
-      return { customerNumber, messages: sorted, last: sorted[sorted.length - 1] };
+      const customerName = [...sorted].reverse().find((m) => m.contact_name)?.contact_name ?? null;
+      return { customerNumber, customerName, messages: sorted, last: sorted[sorted.length - 1] };
     })
     .sort((a, b) => b.last.created_at.localeCompare(a.last.created_at));
 }

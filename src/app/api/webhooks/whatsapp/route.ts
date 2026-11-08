@@ -102,6 +102,12 @@ async function processPayload(payload: WhatsAppWebhookPayload) {
       const clientId = account.client_id;
 
       // Incoming messages
+      // Customer profile names arrive in value.contacts, keyed by wa_id.
+      const names = new Map<string, string>();
+      for (const c of value.contacts ?? []) {
+        if (c.wa_id && c.profile?.name) names.set(c.wa_id, c.profile.name.slice(0, 120));
+      }
+
       for (const msg of value.messages ?? []) {
         await db.from("messages").insert({
           client_id: clientId,
@@ -110,6 +116,7 @@ async function processPayload(payload: WhatsAppWebhookPayload) {
           from_number: msg.from,
           to_number: phoneNumberId,
           phone_number_id: phoneNumberId,
+          contact_name: names.get(msg.from) ?? null,
           message_type: msg.type,
           body: extractBody(msg),
           status: "received",
@@ -184,6 +191,7 @@ function extractBody(msg: WhatsAppInboundMessage): string | null {
 interface WhatsAppChangeValue {
   metadata?: { phone_number_id?: string };
   messages?: WhatsAppInboundMessage[];
+  contacts?: Array<{ wa_id?: string; profile?: { name?: string } }>;
   statuses?: Array<{ id: string; status: string }>;
   // message_template_status_update fields
   event?: string;

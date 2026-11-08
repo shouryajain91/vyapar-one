@@ -34,7 +34,7 @@ export default async function InboxPage({
 
   const admin = supabaseAdmin();
   const [{ data }, { data: approved }] = await Promise.all([
-    admin.from("messages").select("id, direction, from_number, to_number, message_type, body, status, created_at").eq("client_id", client!.id).eq("phone_number_id", whatsappAccount.phone_number_id).order("created_at", { ascending: true }),
+    admin.from("messages").select("id, direction, from_number, to_number, message_type, body, contact_name, status, created_at").eq("client_id", client!.id).eq("phone_number_id", whatsappAccount.phone_number_id).order("created_at", { ascending: true }),
     admin
       .from("templates")
       .select("name, language, status, body, header_format, header_text, footer, buttons")
@@ -88,7 +88,7 @@ export default async function InboxPage({
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-semibold text-slate-900">{formatNumber(c.customerNumber)}</span>
+                        <span className="truncate text-sm font-semibold text-slate-900">{c.customerName ?? formatNumber(c.customerNumber)}</span>
                         <span className="shrink-0 text-xs text-slate-400">{formatListTime(c.last.created_at, now)}</span>
                       </span>
                       <span className="block truncate text-sm text-slate-500">{preview(c.last)}</span>
@@ -124,8 +124,8 @@ export default async function InboxPage({
                 <Icon name="user" className="h-5 w-5" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-900">{formatNumber(active.customerNumber)}</p>
-                <p className="whitespace-nowrap text-xs text-slate-500">{active.messages.length} messages</p>
+                <p className="truncate text-sm font-semibold text-slate-900">{active.customerName ?? formatNumber(active.customerNumber)}</p>
+                <p className="whitespace-nowrap text-xs text-slate-500">{active.customerName ? `${formatNumber(active.customerNumber)} · ` : ""}{active.messages.length} messages</p>
               </div>
               <span className="shrink-0 whitespace-nowrap">
                 {win.open ? (
