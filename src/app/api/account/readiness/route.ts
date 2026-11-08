@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GRAPH_VERSION, getWaContext, graphErrorMessage } from "@/lib/wa-context";
+import { GRAPH_VERSION, getWaContext } from "@/lib/wa-context";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 interface HealthEntity {
@@ -18,19 +18,33 @@ export async function GET() {
   const ctx = await getWaContext();
   if (!ctx.ok) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
 
-  const call = async (fields: string) => {
-    const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${ctx.wabaId}?fields=${fields}`, {
-      headers: { Authorization: `Bearer ${ctx.accessToken}` },
-      cache: "no-store",
-    });
-    return { ok: res.ok, data: await res.json().catch(() => ({})) };
-  };
-
-  // Ask for everything; if Meta rejects one field, retry with the core set.
-  let r = await call("health_status,primary_funding_id,status,business_verification_status,currency,whatsapp_business_manager_messaging_limit");
-  if (!r.ok) r = await call("health_status,primary_funding_id,status");
-  if (!r.ok) return NextResponse.json({ error: graphErrorMessage(r.data) }, { status: 502 });
-  const d = r.data as {
+  // Request each field on its own. Meta only shares some of them (send health,
+  // funding, verification) with apps whose business is an approved solution
+  // provider, and one refused field would otherwise fail the whole request.
+  const FIELDS = [
+    "health_status",
+    "primary_funding_id",
+    "status",
+    "business_verification_status",
+    "currency",
+    "whatsapp_business_manager_messaging_limit",
+  ];
+  const results = await Promise.all(
+    FIELDS.map(async (field) => {
+      try {
+        const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${ctx.wabaId}?fields=${field}`, {
+          headers: { Authorization: `Bearer ${ctx.accessToken}` },
+          cache: "no-store",
+          signal: AbortSignal.timeout(8000),
+        });
+        return { field, ok: res.ok, data: await res.json().catch(() => ({})) };
+      } catch {
+        return { field, ok: false, data: {} };
+      }
+    })
+  );
+  const unavailable = results.filter((r) => !r.ok).map((r) => r.field);
+  const d = Object.assign({}, ...results.filter((r) => r.ok).map((r) => r.data)) as {
     health_status?: { can_send_message?: string; entities?: HealthEntity[] };
     primary_funding_id?: string | null;
     status?: string;
@@ -63,6 +77,7 @@ export async function GET() {
   return NextResponse.json({
     can_send_message: d.health_status?.can_send_message ?? null,
     issues,
+    unavailable,
     funding_attached: funding == null ? null : funding !== "" && funding !== "0",
     account_status: d.status ?? null,
     business_verification: d.business_verification_status ?? null,

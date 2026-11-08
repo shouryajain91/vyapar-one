@@ -7,6 +7,7 @@ import { formatDateTime } from "@/lib/format";
 interface Readiness {
   can_send_message: string | null;
   issues: { area: string; code: string | null; text: string; fix: string | null }[];
+  unavailable: string[];
   funding_attached: boolean | null;
   account_status: string | null;
   business_verification: string | null;
@@ -60,6 +61,7 @@ export function AccountReadiness() {
   if (error) return <Alert tone="error" className="mt-4">Sending status from Meta: {error}</Alert>;
   if (!r) return <p className="mt-4 text-sm text-slate-500">Checking sending status with Meta&hellip;</p>;
 
+  const no = (field: string) => r.unavailable.includes(field);
   const send = r.can_send_message ? SEND[r.can_send_message] : null;
   const verify = r.business_verification ? (VERIFY[r.business_verification] ?? { label: r.business_verification, tone: "slate" as const }) : null;
 
@@ -77,12 +79,12 @@ export function AccountReadiness() {
 
       <dl className="space-y-3 text-sm">
         <div className="flex items-center justify-between gap-2 text-slate-600">
-          Sending status {send ? <Badge tone={send.tone}>{send.label}</Badge> : <span className="text-slate-500">Not reported</span>}
+          Sending status {send ? <Badge tone={send.tone}>{send.label}</Badge> : <span className="text-slate-500">{no("health_status") ? "Not shared by Meta yet" : "Not reported"}</span>}
         </div>
         <div className="flex items-center justify-between gap-2 text-slate-600">
           Payment method or credit line
           {r.funding_attached === null ? (
-            <span className="text-slate-500">Not reported</span>
+            <span className="text-slate-500">{no("primary_funding_id") ? "Not shared by Meta yet" : "Not reported"}</span>
           ) : r.funding_attached ? (
             <Badge tone="green">Attached</Badge>
           ) : (
@@ -115,6 +117,8 @@ export function AccountReadiness() {
       <p className="mt-3 text-xs text-slate-500">
         Meta doesn&apos;t share your balance or credit amount with apps. To see it, open WhatsApp Manager &rarr; Billing.
         If a send fails for lack of funds, it appears above.
+        {(no("health_status") || no("primary_funding_id")) &&
+          " Meta only shares sending status and payment details with apps from approved solution providers, so those lines may stay empty for now."}
       </p>
     </div>
   );
