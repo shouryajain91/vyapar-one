@@ -3,7 +3,7 @@ export const instant = false;
 import Link from "next/link";
 import { requirePlatformAdmin } from "@/lib/platform-admin";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { Badge, Card, PageContainer, PageHeader } from "@/components/ui";
+import { Badge, Card, LinkButton, PageContainer, PageHeader } from "@/components/ui";
 import { formatDateTime } from "@/lib/format";
 
 export default async function AdminPage() {
@@ -30,6 +30,7 @@ export default async function AdminPage() {
       <PageHeader
         title="Platform admin"
         description="Read-only view of client conversations, plus password help. Every chat you open and every reset is logged."
+        actions={<LinkButton href="/admin/reports" variant="secondary">Platform report</LinkButton>}
       />
       <Card className="overflow-hidden !p-0">
         <div className="overflow-x-auto">
