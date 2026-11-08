@@ -40,6 +40,14 @@ export default async function LoginPage({
         </div>
         <button type="submit" className={buttonClass("primary", "md", "w-full")}>Log in</button>
       </form>
+      <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-400">
+        <span className="h-px flex-1 bg-slate-200" />
+        or
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
+      <Link href="/login/code" className={buttonClass("secondary", "md", "w-full")}>
+        Email me a login code
+      </Link>
     </AuthShell>
   );
 }
