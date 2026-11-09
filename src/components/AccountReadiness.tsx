@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCachedFetch } from "@/lib/use-cached-fetch";
 import { Alert, Badge } from "@/components/ui";
 import { formatDateTime } from "@/lib/format";
 
@@ -40,23 +40,7 @@ const LIMIT: Record<string, string> = {
 
 /** Can this business send, and is billing in place? Live from Meta. */
 export function AccountReadiness() {
-  const [r, setR] = useState<Readiness | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/account/readiness")
-      .then(async (res) => {
-        const d = await res.json();
-        if (cancelled) return;
-        if (!res.ok) setError(d.error ?? "Could not load");
-        else setR(d);
-      })
-      .catch(() => !cancelled && setError("Could not load"));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: r, error } = useCachedFetch<Readiness>("/api/account/readiness");
 
   if (error) return <Alert tone="error" className="mt-4">Sending status from Meta: {error}</Alert>;
   if (!r) return <p className="mt-4 text-sm text-slate-500">Checking sending status with Meta&hellip;</p>;

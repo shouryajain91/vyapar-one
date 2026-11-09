@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCachedFetch } from "@/lib/use-cached-fetch";
 import { Alert, Badge } from "@/components/ui";
 
 interface Health {
@@ -39,23 +39,7 @@ const TIER: Record<string, string> = {
 
 /** Live number status from Meta: display name review, quality, daily limit. */
 export function NumberHealth() {
-  const [health, setHealth] = useState<Health | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/numbers/health")
-      .then(async (r) => {
-        const d = await r.json();
-        if (cancelled) return;
-        if (!r.ok) setError(d.error ?? "Could not load status");
-        else setHealth(d);
-      })
-      .catch(() => !cancelled && setError("Could not load status"));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: health, error } = useCachedFetch<Health>("/api/numbers/health");
 
   if (error) return <Alert tone="error" className="mt-4">Number status from Meta: {error}</Alert>;
   if (!health) return <p className="mt-4 text-sm text-slate-500">Checking number status with Meta&hellip;</p>;

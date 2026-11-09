@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import { getSessionClientId, getSessionUser } from "@/lib/session";
-import { supabaseAdmin } from "@/lib/supabase-server";
-import { loadAccounts } from "@/lib/wa-accounts";
+import { getSessionContext, getSessionUser } from "@/lib/session";
+import { pickActive } from "@/lib/wa-accounts";
 
 /**
  * Resolves the logged-in user's client (tenant) record.
@@ -12,14 +11,10 @@ import { loadAccounts } from "@/lib/wa-accounts";
 export async function getCurrentClient() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  const clientId = await getSessionClientId();
-  if (!clientId) redirect("/login");
+  const ctx = await getSessionContext();
+  if (!ctx) redirect("/login");
 
-  // Independent lookups run in parallel.
-  const [{ data: client }, { accounts: whatsappAccounts, active: whatsappAccount }] = await Promise.all([
-    supabaseAdmin().from("clients").select("*").eq("id", clientId).single(),
-    loadAccounts(clientId!),
-  ]);
-
+  const { accounts: whatsappAccounts, active: whatsappAccount } = await pickActive(ctx!.accounts);
+  const client = ctx!.client as { id: string; business_name?: string | null; [k: string]: unknown };
   return { user: user!, client, whatsappAccount, whatsappAccounts };
 }

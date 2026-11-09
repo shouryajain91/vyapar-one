@@ -29,8 +29,11 @@ export async function loadAccounts(
     .select("*")
     .eq("client_id", clientId)
     .order("connected_at", { ascending: true });
-  const accounts = (data ?? []) as WaAccount[];
+  return pickActive((data ?? []) as WaAccount[]);
+}
 
+/** Chooses the active number from an already-loaded list. */
+export async function pickActive(accounts: WaAccount[]): Promise<{ accounts: WaAccount[]; active: WaAccount | null }> {
   const chosen = (await cookies()).get(ACTIVE_NUMBER_COOKIE)?.value;
   const active =
     accounts.find((a) => a.phone_number_id === chosen) ??

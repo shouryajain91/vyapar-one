@@ -4,8 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { NavLink } from "@/components/NavLink";
 import { Icon } from "@/components/icons";
 import { buttonClass } from "@/components/ui";
-import { getSessionClientId, getSessionUser } from "@/lib/session";
-import { supabaseAdmin } from "@/lib/supabase-server";
+import { getSessionContext, getSessionUser } from "@/lib/session";
 import { isPlatformAdminEmail } from "@/lib/platform-admin";
 import { DemoCaptions } from "@/components/DemoCaptions";
 import { DemoToggle } from "@/components/DemoToggle";
@@ -29,12 +28,8 @@ async function AdminNav() {
 async function SidebarUser() {
   const user = await getSessionUser();
   if (!user) return null;
-  const clientId = await getSessionClientId();
-
-  const { data: client } = clientId
-    ? await supabaseAdmin().from("clients").select("business_name").eq("id", clientId).maybeSingle()
-    : { data: null };
-  const business: string | null = client?.business_name ?? null;
+  const ctx = await getSessionContext();
+  const business = (ctx?.client?.business_name as string | undefined) ?? null;
 
   return (
     <div className="border-t border-slate-200 p-3">

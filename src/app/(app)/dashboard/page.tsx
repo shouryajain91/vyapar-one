@@ -14,17 +14,15 @@ export default async function DashboardPage() {
   const { client, whatsappAccount, whatsappAccounts } = await getCurrentClient();
   const db = supabaseAdmin();
 
-  const [{ data: msgs }, { data: tpls }] = await Promise.all([
-    db.from("messages").select("direction, from_number, to_number").eq("client_id", client!.id),
+  const [{ data: counts }, { data: tpls }] = await Promise.all([
+    db.rpc("dashboard_counts", { p_client: client!.id }),
     db.from("templates").select("status").eq("client_id", client!.id),
   ]);
 
-  const messages = msgs ?? [];
+  const total = (counts?.total as number) ?? 0;
   const templates = tpls ?? [];
-  const conversations = new Set(
-    messages.map((m) => (m.direction === "inbound" ? m.from_number : m.to_number)).filter(Boolean)
-  ).size;
-  const sent = messages.filter((m) => m.direction === "outbound").length;
+  const conversations = (counts?.conversations as number) ?? 0;
+  const sent = (counts?.sent as number) ?? 0;
   const approved = templates.filter((t) => t.status === "APPROVED").length;
   const inReview = templates.filter((t) => t.status === "PENDING" || t.status === "IN_APPEAL").length;
 
@@ -45,7 +43,7 @@ export default async function DashboardPage() {
 
   const stats: { label: string; value: number; hint: string; icon: IconName }[] = [
     { label: "Conversations", value: conversations, hint: "customers you've chatted with", icon: "chat" },
-    { label: "Messages sent", value: sent, hint: `${messages.length - sent} received`, icon: "send" },
+    { label: "Messages sent", value: sent, hint: `${total - sent} received`, icon: "send" },
     { label: "Approved templates", value: approved, hint: "ready to send", icon: "check" },
     { label: "Templates in review", value: inReview, hint: "waiting for WhatsApp", icon: "template" },
   ];

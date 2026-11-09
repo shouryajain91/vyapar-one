@@ -16,13 +16,13 @@ export const getSessionUser = cache(async () => {
   return { id: c.sub as string, email: (c.email as string | undefined) ?? null };
 });
 
-export const getSessionClientId = cache(async () => {
+/** Client row + numbers for the signed-in user, in a single database call (cached per request). */
+export const getSessionContext = cache(async () => {
   const user = await getSessionUser();
   if (!user) return null;
-  const { data } = await supabaseAdmin()
-    .from("app_users")
-    .select("client_id")
-    .eq("user_id", user.id)
-    .single();
-  return (data?.client_id as string | undefined) ?? null;
+  const { data } = await supabaseAdmin().rpc("session_context", { p_user: user.id });
+  if (!data) return null;
+  return data as { client_id: string; client: Record<string, unknown>; accounts: import("@/lib/wa-accounts").WaAccount[] };
 });
+
+export const getSessionClientId = cache(async () => (await getSessionContext())?.client_id ?? null);
