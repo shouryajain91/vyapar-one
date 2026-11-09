@@ -1,5 +1,6 @@
 export const instant = false;
 
+import { connection } from "next/server";
 import Link from "next/link";
 import { getCurrentClient } from "@/lib/current-client";
 import { supabaseAdmin } from "@/lib/supabase-server";
@@ -22,6 +23,7 @@ function pct(a: number, b: number) {
 }
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  await connection(); // date filters read the clock
   const f = parseFilters(await searchParams);
   const { client, whatsappAccounts } = await getCurrentClient();
   const db = supabaseAdmin();
