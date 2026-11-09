@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
-import { getSessionClientId } from "@/lib/session";
+import { getSessionContext } from "@/lib/session";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { loadAccounts } from "@/lib/wa-accounts";
+import { pickActive } from "@/lib/wa-accounts";
 import { cleanRecipients, MAX_RECIPIENTS, type RecipientInput } from "@/lib/campaign-input";
 import { runCampaignBatches } from "@/lib/campaign-runner";
 import type { SendableTemplate } from "@/lib/template-send";
@@ -19,8 +19,9 @@ interface Body {
 }
 
 export async function POST(req: NextRequest) {
-  const clientId = await getSessionClientId();
-  if (!clientId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const ctx = await getSessionContext();
+  const clientId = ctx?.client_id;
+  if (!ctx || !clientId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   let b: Body;
   try {
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     if (ms > 60 * 24 * 3600_000) return NextResponse.json({ error: "You can schedule up to 60 days ahead." }, { status: 400 });
   }
 
-  const { active: account } = await loadAccounts(clientId);
+  const { active: account } = await pickActive(ctx.accounts);
   if (!account) return NextResponse.json({ error: "Connect a WhatsApp number first." }, { status: 409 });
   if (account.verification_status === "pending_registration") {
     return NextResponse.json({ error: "Finish registering your number on the dashboard first." }, { status: 409 });

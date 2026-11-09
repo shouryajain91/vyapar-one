@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loadAccounts } from "@/lib/wa-accounts";
+import { pickActive } from "@/lib/wa-accounts";
+import { getSessionContext } from "@/lib/session";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { decrypt } from "@/lib/crypto";
-import { supabaseRSC } from "@/lib/supabase-rsc";
 import { normalizeNumber } from "@/lib/phone";
 import { buildSendComponents, type SendInput, type SendableTemplate } from "@/lib/template-send";
 
@@ -35,25 +35,15 @@ export async function POST(req: NextRequest) {
   }
 
   // Who is calling? The client always comes from the session, never the body.
-  const supabase = await supabaseRSC();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-
+  const ctx = await getSessionContext();
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   const db = supabaseAdmin();
-  const { data: appUser } = await db
-    .from("app_users")
-    .select("client_id")
-    .eq("user_id", user.id)
-    .single();
-  if (!appUser) return NextResponse.json({ error: "No client for user" }, { status: 403 });
-  const client_id = appUser.client_id;
+  const client_id = ctx.client_id;
 
   // TODO: add per-client rate limiting here before going to production
   // with multiple real clients, so one client can't exhaust shared quota.
 
-  const { active: account } = await loadAccounts(client_id);
+  const { active: account } = await pickActive(ctx.accounts);
 
   if (!account) {
     return NextResponse.json({ error: "No connected WhatsApp account for this client" }, { status: 404 });

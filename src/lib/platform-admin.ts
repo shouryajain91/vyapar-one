@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { supabaseRSC } from "@/lib/supabase-rsc";
+import { getSessionUser } from "@/lib/session";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 /**
@@ -16,11 +16,7 @@ export function isPlatformAdminEmail(email: string | null | undefined): boolean 
 }
 
 export async function requirePlatformAdmin() {
-  const supabase = await supabaseRSC();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getSessionUser();
   if (!user || !isPlatformAdminEmail(user.email)) {
     notFound();
   }

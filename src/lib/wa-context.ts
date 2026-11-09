@@ -1,7 +1,6 @@
-import { supabaseRSC } from "@/lib/supabase-rsc";
-import { getSessionClientId } from "@/lib/session";
+import { getSessionContext } from "@/lib/session";
 import { decrypt } from "@/lib/crypto";
-import { loadAccounts } from "@/lib/wa-accounts";
+import { pickActive } from "@/lib/wa-accounts";
 
 export const GRAPH_VERSION = "v21.0";
 
@@ -11,16 +10,11 @@ export type WaContext =
 
 /** Resolves the logged-in user's client and its WhatsApp account. */
 export async function getWaContext(): Promise<WaContext> {
-  const supabase = await supabaseRSC();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, status: 401, error: "Not signed in" };
+  const ctx = await getSessionContext();
+  if (!ctx) return { ok: false, status: 401, error: "Not signed in" };
+  const clientId = ctx.client_id;
 
-  const clientId = await getSessionClientId();
-  if (!clientId) return { ok: false, status: 403, error: "No client for user" };
-
-  const { active: account } = await loadAccounts(clientId);
+  const { active: account } = await pickActive(ctx.accounts);
   if (!account) return { ok: false, status: 404, error: "Connect WhatsApp first" };
 
   return {
