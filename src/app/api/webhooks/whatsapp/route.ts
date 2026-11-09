@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { STATUS_RANK } from "@/lib/wa-errors";
 import { classifyOptMessage } from "@/lib/optout";
+import { maybeAutoReply } from "@/lib/bot-reply";
 
 /**
  * GET: Meta's webhook verification handshake.
@@ -111,6 +112,9 @@ async function processPayload(payload: WhatsAppWebhookPayload) {
       }
 
       for (const msg of value.messages ?? []) {
+        // Meta re-delivers webhooks; ignore a message we already stored.
+        const { data: seen } = await db.from("messages").select("id").eq("wa_message_id", msg.id).eq("client_id", clientId).maybeSingle();
+        if (seen) continue;
         await db.from("messages").insert({
           client_id: clientId,
           wa_message_id: msg.id,
@@ -150,6 +154,17 @@ async function processPayload(payload: WhatsAppWebhookPayload) {
             .eq("client_id", clientId)
             .eq("phone", msg.from)
             .eq("status", "opted_out");
+        }
+
+        // Keyword bot: reply automatically (not to STOP / START messages).
+        if (!optAction) {
+          await maybeAutoReply({
+            clientId,
+            phoneNumberId,
+            customer: msg.from,
+            customerName: names.get(msg.from) ?? null,
+            text: extractBody(msg),
+          });
         }
       }
 

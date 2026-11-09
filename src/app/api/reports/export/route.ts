@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(EXPORT_MAX);
 
-  const head = ["Date & time (IST)", "Direction", "Customer number", "Customer name", "Sent from (number ID)", "Type", "Template", "Message", "Status", "Failure code", "Failure reason", "Delivered at", "Read at"];
+  const head = ["Date & time (IST)", "Direction", "Customer number", "Customer name", "Sent from (number ID)", "Type", "Template", "Source", "Message", "Status", "Failure code", "Failure reason", "Delivered at", "Read at"];
   const rows = (data ?? []).map((m) => {
     const out = m.direction === "outbound";
     return [
@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
       m.phone_number_id,
       m.message_type,
       m.template_name,
+      out ? (m.campaign_id ? "Campaign" : m.bot_rule_id ? "Bot" : "Manual") : "",
       m.body,
       m.status,
       m.error_code,

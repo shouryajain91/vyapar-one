@@ -76,4 +76,4 @@ export function applyFilters<Q extends { [k: string]: any }>(
 }
 
 export const REPORT_COLUMNS =
-  "id, created_at, direction, from_number, to_number, contact_name, phone_number_id, message_type, template_name, body, status, error_code, error_message, delivered_at, read_at";
+  "id, created_at, direction, from_number, to_number, contact_name, phone_number_id, message_type, template_name, body, status, error_code, error_message, delivered_at, read_at, campaign_id, bot_rule_id";

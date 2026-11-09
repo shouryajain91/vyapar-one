@@ -181,6 +181,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   <th className="px-4 py-3">Direction</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Template</th>
+                  <th className="px-4 py-3">Source</th>
                   <th className="px-4 py-3">Message</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Reason</th>
@@ -203,6 +204,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                       <td className="whitespace-nowrap px-4 py-3 text-slate-700">{out ? "Sent" : "Received"}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-slate-700">{m.message_type ?? "–"}</td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700">{m.template_name ?? "–"}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-600">{m.direction !== "outbound" ? "–" : m.campaign_id ? "Campaign" : m.bot_rule_id ? "Bot" : "Manual"}</td>
                       <td className="min-w-56 max-w-xs px-4 py-3 text-slate-700">
                         <p className="line-clamp-2 break-words" title={m.body ?? ""}>{m.body ?? "–"}</p>
                       </td>
