@@ -43,6 +43,9 @@ async function SidebarUser() {
         </div>
       </div>
       <DemoToggle />
+      <Link href="/account/password" className="mb-2 block rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+        Change password
+      </Link>
       <form action={logoutAction}>
         <button type="submit" className={buttonClass("secondary", "md", "w-full")}>
           <Icon name="logout" />
