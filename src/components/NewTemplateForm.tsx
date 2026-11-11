@@ -41,6 +41,22 @@ export function NewTemplateForm() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  function useFeedbackStarter() {
+    setName("customer_feedback");
+    setCategory("MARKETING");
+    setLanguage("en_US");
+    setBody("Hi {{1}}, thank you for choosing {{2}}! How was your experience with us? Please tap one option below.");
+    setExamples({ 1: "Asha", 2: "Acme Traders" });
+    setHeaderFormat("NONE");
+    setFooter("Reply STOP to opt out");
+    setButtons([
+      { type: "QUICK_REPLY", text: "Great" },
+      { type: "QUICK_REPLY", text: "Okay" },
+      { type: "QUICK_REPLY", text: "Poor" },
+    ]);
+    setErr(null);
+  }
+
   const vars = [...new Set(extractVariables(body))].sort((a, b) => a - b);
   const exampleList = vars.map((n) => examples[n] ?? "");
   const headerHasVar = headerFormat === "TEXT" && extractVariables(headerText).length > 0;
@@ -140,6 +156,13 @@ export function NewTemplateForm() {
   return (
     <form onSubmit={submit} className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="space-y-6">
+        <Card title="Start from an example" description="Fills in the form for you. You can change anything before submitting.">
+          <Button type="button" variant="secondary" onClick={useFeedbackStarter}>Customer feedback (Great / Okay / Poor)</Button>
+          <p className={hintCls}>
+            Customers answer with one tap, and the Feedback page counts the answers for you. Marketing is the safest category for a general
+            feedback request. WhatsApp may approve it as Utility if it follows a specific recent order.
+          </p>
+        </Card>
         <Card title="Basics">
           <div className="space-y-4">
             <div>

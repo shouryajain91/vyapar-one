@@ -57,6 +57,8 @@ export async function processPayload(payload: WhatsAppWebhookPayload) {
           contact_name: names.get(msg.from) ?? null,
           message_type: msg.type,
           body: extractBody(msg),
+          reply_to_wa_id: msg.context?.id ?? null,
+          button_payload: msg.button?.payload ?? msg.interactive?.button_reply?.id ?? null,
           status: "received",
           raw_payload: msg,
         });
@@ -255,9 +257,10 @@ export interface WhatsAppInboundMessage {
   from: string;
   type: string;
   text?: { body: string };
-  button?: { text: string };
+  context?: { id?: string };
+  button?: { text: string; payload?: string };
   interactive?: {
-    button_reply?: { title: string };
+    button_reply?: { title: string; id?: string };
     list_reply?: { title: string };
   };
   image?: { caption?: string };
