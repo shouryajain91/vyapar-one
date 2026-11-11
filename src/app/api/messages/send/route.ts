@@ -1,3 +1,4 @@
+import { isTokenError, markTokenInvalid } from "@/lib/alerts";
 import { NextRequest, NextResponse } from "next/server";
 import { pickActive } from "@/lib/wa-accounts";
 import { getSessionContext } from "@/lib/session";
@@ -75,6 +76,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  if (account.token_status === "invalid") {
+    return NextResponse.json(
+      { error: "token_expired", message: "Your WhatsApp connection has expired. Open the dashboard and tap Reconnect WhatsApp." },
+      { status: 409 }
+    );
+  }
   const accessToken = decrypt(account.access_token_encrypted);
 
   let payload: Record<string, unknown>;
@@ -129,6 +136,7 @@ export async function POST(req: NextRequest) {
   const graphData = await graphRes.json();
 
   if (!graphRes.ok) {
+    if (isTokenError(graphData?.error?.code, graphRes.status)) await markTokenInvalid(client_id, account.phone_number_id, graphData?.error?.message);
     console.error("WhatsApp send failed:", JSON.stringify(graphData));
     const msg: string | undefined = graphData?.error?.error_user_msg ?? graphData?.error?.message;
     // Keep a record of the failed attempt so it shows in the chat with the reason.

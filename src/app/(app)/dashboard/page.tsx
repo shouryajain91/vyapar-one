@@ -159,6 +159,16 @@ export default async function DashboardPage() {
               <p className="mt-3 text-xs text-slate-500">
                 The inbox, templates and new messages use the number marked &ldquo;In use&rdquo;.
               </p>
+              {whatsappAccounts.some((a) => a.token_status === "invalid") && (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+                  <p className="text-sm font-semibold text-red-800">WhatsApp connection expired</p>
+                  <p className="mt-1 text-sm text-red-700">
+                    Meta stopped accepting our access, so messages can&apos;t be sent or received. This happens if the app was removed
+                    from your WhatsApp account or your Meta business settings changed. Reconnect to fix it. Your chats and templates are kept.
+                  </p>
+                  <div className="mt-3"><ConnectWhatsAppButton clientId={client!.id} label="Reconnect WhatsApp" /></div>
+                </div>
+              )}
               {whatsappAccount!.verification_status === "connected" && <NumberHealth />}
               {whatsappAccount!.verification_status === "connected" && <AccountReadiness />}
               <div className="mt-4">

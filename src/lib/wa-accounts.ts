@@ -14,6 +14,9 @@ export interface WaAccount {
   verification_status: string | null;
   registration_pin_encrypted: string | null;
   connected_at: string | null;
+  token_status?: "ok" | "invalid";
+  quality_rating?: string | null;
+  messaging_limit_tier?: string | null;
 }
 
 /**

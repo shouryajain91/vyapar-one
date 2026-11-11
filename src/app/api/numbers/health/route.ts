@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GRAPH_VERSION, getWaContext, graphErrorMessage } from "@/lib/wa-context";
+import { GRAPH_VERSION, getWaContext, graphErrorMessage, noteGraphFailure } from "@/lib/wa-context";
 
 // Live status of the active number straight from Meta: display name review,
 // quality rating and daily messaging limit.
@@ -15,6 +15,7 @@ export async function GET() {
   );
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    await noteGraphFailure(ctx, data, res.status);
     return NextResponse.json({ error: graphErrorMessage(data) }, { status: 502 });
   }
   return NextResponse.json({

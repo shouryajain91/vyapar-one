@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GRAPH_VERSION, getWaContext } from "@/lib/wa-context";
+import { GRAPH_VERSION, getWaContext, noteGraphFailure } from "@/lib/wa-context";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 interface HealthEntity {
@@ -43,6 +43,8 @@ export async function GET() {
       }
     })
   );
+  const denied = results.find((r) => !r.ok && String((r.data as { error?: { code?: number } })?.error?.code) === "190");
+  if (denied) await noteGraphFailure(ctx, denied.data as { error?: { code?: number; message?: string } });
   const unavailable = results.filter((r) => !r.ok).map((r) => r.field);
   const d = Object.assign({}, ...results.filter((r) => r.ok).map((r) => r.data)) as {
     health_status?: { can_send_message?: string; entities?: HealthEntity[] };

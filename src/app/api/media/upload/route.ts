@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GRAPH_VERSION, getWaContext, graphErrorMessage } from "@/lib/wa-context";
+import { GRAPH_VERSION, getWaContext, graphErrorMessage, noteGraphFailure } from "@/lib/wa-context";
 import { SAMPLE_MAX_BYTES, SAMPLE_RULES } from "@/lib/template-validate";
 
 /**
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.id) {
+    await noteGraphFailure(ctx, data, res.status);
     console.error("Media upload failed:", JSON.stringify(data));
     return NextResponse.json({ error: graphErrorMessage(data) }, { status: 502 });
   }

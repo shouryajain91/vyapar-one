@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { GRAPH_VERSION, getWaContext, graphErrorMessage } from "@/lib/wa-context";
+import { GRAPH_VERSION, getWaContext, graphErrorMessage, noteGraphFailure } from "@/lib/wa-context";
 import { buildComponents, validateTemplate, type TemplateInput } from "@/lib/template-validate";
 
 // Create a message template on the client's WhatsApp account (goes to Meta for review).
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
   );
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    await noteGraphFailure(ctx, data, res.status);
     console.error("Template create failed:", JSON.stringify(data));
     return NextResponse.json({ error: graphErrorMessage(data) }, { status: 400 });
   }
@@ -99,6 +100,7 @@ export async function DELETE(req: NextRequest) {
   );
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    await noteGraphFailure(ctx, data, res.status);
     console.error("Template delete failed:", JSON.stringify(data));
     return NextResponse.json({ error: graphErrorMessage(data) }, { status: 400 });
   }

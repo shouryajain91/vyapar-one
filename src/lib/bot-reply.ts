@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { decrypt } from "@/lib/crypto";
+import { isTokenError, markTokenInvalid } from "@/lib/alerts";
 import { explainError } from "@/lib/wa-errors";
 import { fillReply, pickRule, type BotRuleLike } from "@/lib/bot";
 
@@ -55,9 +56,9 @@ export async function maybeAutoReply(opts: {
       if (recent?.length) return;
     }
 
-    const { data: acc } = await db.from("whatsapp_accounts").select("access_token_encrypted")
+    const { data: acc } = await db.from("whatsapp_accounts").select("access_token_encrypted, token_status")
       .eq("client_id", clientId).eq("phone_number_id", phoneNumberId).maybeSingle();
-    if (!acc?.access_token_encrypted) return;
+    if (!acc?.access_token_encrypted || acc.token_status === "invalid") return;
 
     const body = fillReply(rule.reply_text, opts.customerName).slice(0, 4000);
     const payload = { messaging_product: "whatsapp", to: customer, type: "text", text: { body } };
@@ -69,6 +70,7 @@ export async function maybeAutoReply(opts: {
     });
     const data = await res.json().catch(() => ({}));
     const code = data?.error?.code != null ? String(data.error.code) : null;
+    if (!res.ok && isTokenError(code, res.status)) await markTokenInvalid(clientId, phoneNumberId, data?.error?.message);
     await db.from("messages").insert({
       client_id: clientId,
       wa_message_id: res.ok ? (data.messages?.[0]?.id ?? null) : null,

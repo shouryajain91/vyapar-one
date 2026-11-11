@@ -9,16 +9,27 @@ import { SendTemplateForm } from "@/components/SendTemplateForm";
 import { Icon } from "@/components/icons";
 import { Alert, Badge, EmptyState, LinkButton, buttonClass } from "@/components/ui";
 import type { SendableTemplate } from "@/lib/template-send";
-import { groupConversations, preview, type MessageRow } from "@/lib/conversations";
+import { preview, type MessageRow } from "@/lib/conversations";
 import { formatListTime, formatNumber, replyWindow } from "@/lib/format";
+
+const PAGE_SIZE = 30;
+
+interface ConvRow {
+  customer: string; customer_name: string | null; last_direction: "inbound" | "outbound"; last_type: string | null;
+  last_body: string | null; last_at: string; total: number;
+}
 
 export default async function InboxPage({
   searchParams,
 }: {
-  searchParams: Promise<{ with?: string }>;
+  searchParams: Promise<{ with?: string; p?: string; q?: string; n?: string }>;
 }) {
   const { client, whatsappAccount } = await getCurrentClient();
-  const { with: activeNumber } = await searchParams;
+  const sp = await searchParams;
+  const activeNumber = /^\d{5,20}$/.test(sp.with ?? "") ? sp.with : undefined;
+  const page = Math.max(1, Number(sp.p) || 1);
+  const q = (sp.q ?? "").trim().slice(0, 40);
+  const take = Math.min(1000, Math.max(100, Number(sp.n) || 100));
 
   if (!whatsappAccount) {
     return (
@@ -33,26 +44,63 @@ export default async function InboxPage({
   }
 
   const admin = supabaseAdmin();
-  const [{ data }, { data: approved }, { data: optedOutRows }] = await Promise.all([
-    admin.from("messages").select("id, direction, from_number, to_number, message_type, body, contact_name, status, error_code, error_message, delivered_at, read_at, created_at").eq("client_id", client!.id).eq("phone_number_id", whatsappAccount.phone_number_id).order("created_at", { ascending: true }),
+  const number = whatsappAccount.phone_number_id;
+  const [{ data: rows }, { data: approved }] = await Promise.all([
+    admin.rpc("conversation_list", { p_client: client!.id, p_number: number, p_q: q || null, p_limit: PAGE_SIZE, p_offset: (page - 1) * PAGE_SIZE }),
     admin
       .from("templates")
       .select("name, language, status, body, header_format, header_text, footer, buttons")
       .eq("client_id", client!.id)
       .eq("status", "APPROVED")
       .order("name"),
-    admin.from("opt_outs").select("phone").eq("client_id", client!.id).eq("status", "opted_out"),
   ]);
+  const list = (rows ?? []) as ConvRow[];
+  const totalChats = list[0] ? Number(list[0].total) : 0;
+  const pages = Math.max(1, Math.ceil(totalChats / PAGE_SIZE));
+
+  // Only the open chat's messages are loaded (newest first, then flipped).
+  let threadMessages: MessageRow[] = [];
+  let threadTotal = 0;
+  let lastInbound: string | null = null;
+  let threadName: string | null = null;
+  if (activeNumber) {
+    const thread = () => admin.from("messages").select("id, direction, from_number, to_number, message_type, body, contact_name, status, error_code, error_message, delivered_at, read_at, created_at", { count: "exact" })
+      .eq("client_id", client!.id).eq("phone_number_id", number).or(`from_number.eq.${activeNumber},to_number.eq.${activeNumber}`);
+    const [{ data: msgs, count }, { data: inb }] = await Promise.all([
+      thread().order("created_at", { ascending: false }).limit(take),
+      admin.from("messages").select("created_at").eq("client_id", client!.id).eq("phone_number_id", number).eq("from_number", activeNumber).eq("direction", "inbound").order("created_at", { ascending: false }).limit(1),
+    ]);
+    threadMessages = ((msgs ?? []) as MessageRow[]).reverse();
+    threadTotal = count ?? threadMessages.length;
+    lastInbound = inb?.[0]?.created_at ?? null;
+    threadName = [...threadMessages].reverse().find((m) => m.contact_name)?.contact_name ?? null;
+  }
+
+  const phones = [...new Set([...list.map((c) => c.customer), ...(activeNumber ? [activeNumber] : [])])];
+  const { data: optedOutRows } = phones.length
+    ? await admin.from("opt_outs").select("phone").eq("client_id", client!.id).eq("status", "opted_out").in("phone", phones)
+    : { data: [] };
   const optedOut = new Set((optedOutRows ?? []).map((o) => o.phone as string));
 
-  const conversations = groupConversations((data ?? []) as MessageRow[]);
-  const active = conversations.find((c) => c.customerNumber === activeNumber);
+  const conversations = list.map((r) => ({
+    customerNumber: r.customer,
+    customerName: r.customer_name,
+    last: { direction: r.last_direction, body: r.last_body, message_type: r.last_type, created_at: r.last_at } as MessageRow,
+  }));
+  const active = activeNumber
+    ? { customerNumber: activeNumber, customerName: threadName, messages: threadMessages }
+    : undefined;
   const now = new Date();
-
-  const lastInbound = active
-    ? [...active.messages].reverse().find((m) => m.direction === "inbound")?.created_at ?? null
-    : null;
   const win = replyWindow(lastInbound, now);
+  const href = (o: { with?: string; p?: number; n?: number }) => {
+    const u = new URLSearchParams();
+    if (o.with) u.set("with", o.with);
+    if (q) u.set("q", q);
+    if ((o.p ?? page) > 1) u.set("p", String(o.p ?? page));
+    if (o.n) u.set("n", String(o.n));
+    const qs = u.toString();
+    return `/inbox${qs ? `?${qs}` : ""}`;
+  };
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] md:h-dvh">
@@ -64,7 +112,7 @@ export default async function InboxPage({
           <div>
             <h1 className="text-lg font-bold text-slate-900">Inbox</h1>
             <p className="text-xs text-slate-500">
-              {conversations.length} chat{conversations.length === 1 ? "" : "s"} · {whatsappAccount.display_name ?? "your number"}
+              {totalChats} chat{totalChats === 1 ? "" : "s"} · {whatsappAccount.display_name ?? "your number"}
             </p>
           </div>
           <LinkButton href="/inbox/new" size="sm">
@@ -72,6 +120,9 @@ export default async function InboxPage({
             New
           </LinkButton>
         </div>
+        <form action="/inbox" className="shrink-0 border-b border-slate-200 p-3">
+          <input name="q" defaultValue={q} placeholder="Search name or number" className="block w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm" />
+        </form>
         <ul className="flex-1 divide-y divide-slate-100 overflow-y-auto">
           {conversations
             .slice()
@@ -80,7 +131,7 @@ export default async function InboxPage({
               return (
                 <li key={c.customerNumber}>
                   <Link
-                    href={`/inbox?with=${encodeURIComponent(c.customerNumber)}`}
+                    href={href({ with: c.customerNumber })}
                     className={`flex items-center gap-3 px-4 py-3 transition-colors ${
                       selected ? "bg-brand-50" : "hover:bg-slate-50"
                     }`}
@@ -114,6 +165,13 @@ export default async function InboxPage({
             </li>
           )}
         </ul>
+        {pages > 1 && (
+          <div className="flex shrink-0 items-center justify-between border-t border-slate-200 px-4 py-2 text-xs text-slate-500">
+            {page > 1 ? <Link href={href({ p: page - 1, with: activeNumber })} className="font-medium text-brand-700">← Newer</Link> : <span />}
+            <span>Page {page} of {pages}</span>
+            {page < pages ? <Link href={href({ p: page + 1, with: activeNumber })} className="font-medium text-brand-700">Older →</Link> : <span />}
+          </div>
+        )}
       </aside>
 
       {/* Thread */}
@@ -130,7 +188,7 @@ export default async function InboxPage({
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-slate-900">{active.customerName ?? formatNumber(active.customerNumber)}</p>
-                <p className="whitespace-nowrap text-xs text-slate-500">{active.customerName ? `${formatNumber(active.customerNumber)} · ` : ""}{active.messages.length} messages{optedOut.has(active.customerNumber) && <span className="ml-2 font-medium text-red-600">Opted out</span>}</p>
+                <p className="whitespace-nowrap text-xs text-slate-500">{active.customerName ? `${formatNumber(active.customerNumber)} · ` : ""}{threadTotal} messages{optedOut.has(active.customerNumber) && <span className="ml-2 font-medium text-red-600">Opted out</span>}</p>
               </div>
               <span className="shrink-0 whitespace-nowrap">
                 {win.open ? (
@@ -144,6 +202,13 @@ export default async function InboxPage({
             </header>
 
             <div className="min-h-0 flex-1">
+              {threadMessages.length < threadTotal && (
+                <div className="border-b border-slate-200 bg-white px-4 py-2 text-center">
+                  <Link href={href({ with: active.customerNumber, n: take + 200 })} className="text-sm font-medium text-brand-700 hover:underline">
+                    Load older messages ({threadTotal - threadMessages.length} more)
+                  </Link>
+                </div>
+              )}
               <ChatThread messages={active.messages} />
             </div>
 

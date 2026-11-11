@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { decrypt } from "@/lib/crypto";
 import { buildSendComponents, type SendableTemplate } from "@/lib/template-send";
+import { isTokenError, markTokenInvalid } from "@/lib/alerts";
 import { explainError } from "@/lib/wa-errors";
 
 const GRAPH_VERSION = "v21.0";
@@ -151,13 +152,13 @@ async function sendOne(
   if (!tokens.has(camp.id)) {
     const { data: acc } = await db
       .from("whatsapp_accounts")
-      .select("access_token_encrypted")
+      .select("access_token_encrypted, token_status")
       .eq("client_id", camp.client_id)
       .eq("phone_number_id", camp.phone_number_id)
       .maybeSingle();
     let token: string | null = null;
     try {
-      token = acc?.access_token_encrypted ? decrypt(acc.access_token_encrypted) : null;
+      token = acc?.access_token_encrypted && acc.token_status !== "invalid" ? decrypt(acc.access_token_encrypted) : null;
     } catch {
       token = null;
     }
@@ -165,7 +166,7 @@ async function sendOne(
   }
   const token = tokens.get(camp.id);
   if (!token) {
-    await finish("failed", "The sending WhatsApp number is no longer connected.");
+    await finish("failed", "WhatsApp connection expired or number disconnected. Reconnect on the dashboard, then resend to these customers.");
     return "failed";
   }
 
@@ -222,6 +223,10 @@ async function sendOne(
 
   if (!res.ok) {
     const code = data?.error?.code != null ? String(data.error.code) : null;
+    if (isTokenError(code, res.status)) {
+      await markTokenInvalid(camp.client_id, camp.phone_number_id, data?.error?.message);
+      tokens.set(camp.id, null);
+    }
     if (code === "130429") {
       // Sending too fast: put it back and stop this run.
       await db.from("campaign_recipients").update({ status: "pending", claimed_at: null }).eq("id", r.id);

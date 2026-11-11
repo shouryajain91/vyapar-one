@@ -1,3 +1,4 @@
+import { resolveAlert } from "@/lib/alerts";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseRSC } from "@/lib/supabase-rsc";
@@ -136,6 +137,9 @@ export async function POST(req: NextRequest) {
         access_token_encrypted: encrypt(accessToken),
         verification_status: registered ? "connected" : "pending_registration",
         registration_pin_encrypted: encrypt(pin),
+        token_status: "ok",
+        token_error: null,
+        token_checked_at: new Date().toISOString(),
       },
       { onConflict: "phone_number_id" }
     );
@@ -152,6 +156,7 @@ export async function POST(req: NextRequest) {
     .from("clients")
     .update({ status: "active" })
     .eq("id", client_id);
+  await resolveAlert(client_id, `token:${phone_number_id}`);
 
   // Work with the number that was just connected.
   (await cookies()).set(ACTIVE_NUMBER_COOKIE, phone_number_id, {

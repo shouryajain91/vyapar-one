@@ -1,3 +1,4 @@
+import { isTokenError, markTokenInvalid } from "@/lib/alerts";
 import { getSessionContext } from "@/lib/session";
 import { decrypt } from "@/lib/crypto";
 import { pickActive } from "@/lib/wa-accounts";
@@ -30,4 +31,15 @@ export async function getWaContext(): Promise<WaContext> {
 export function graphErrorMessage(data: unknown): string {
   const e = (data as { error?: { error_user_msg?: string; message?: string } })?.error;
   return e?.error_user_msg ?? e?.message ?? "Meta rejected the request";
+}
+
+/** Call after a failed Graph request: flags the connection when the token no longer works. */
+export async function noteGraphFailure(
+  ctx: { clientId: string; phoneNumberId: string },
+  data: { error?: { code?: number; message?: string } } | null | undefined,
+  httpStatus?: number
+) {
+  if (isTokenError(data?.error?.code, httpStatus)) {
+    await markTokenInvalid(ctx.clientId, ctx.phoneNumberId, data?.error?.message);
+  }
 }
