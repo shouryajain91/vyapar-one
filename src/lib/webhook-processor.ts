@@ -3,6 +3,8 @@ import { STATUS_RANK } from "@/lib/wa-errors";
 import { classifyOptMessage } from "@/lib/optout";
 import { maybeAutoReply } from "@/lib/bot-reply";
 import { raiseAlert, resolveAlert } from "@/lib/alerts";
+import { decrypt } from "@/lib/crypto";
+import { registerPhoneNumber } from "@/lib/whatsapp-register";
 import { emitEvent, deliverWebhooks } from "@/lib/outbound-webhooks";
 
 export async function processPayload(payload: WhatsAppWebhookPayload) {
@@ -16,6 +18,12 @@ export async function processPayload(payload: WhatsAppWebhookPayload) {
       // not per phone number.
       if (change.field === "message_template_status_update") {
         await handleTemplateStatus(db, entry.id, value);
+        continue;
+      }
+
+      // Meta finished reviewing a display-name change (per WABA).
+      if (change.field === "phone_number_name_update") {
+        await handleNameUpdate(db, entry.id, value);
         continue;
       }
 
@@ -327,4 +335,66 @@ export async function processWebhookQueue(limit = 20) {
   // Pass queued events on to clients' own servers.
   await deliverWebhooks(30).catch((e) => console.error("webhook delivery run failed", e));
   return { done, failed };
+}
+
+const GRAPH = "v21.0";
+
+/**
+ * Display-name review result. On approval the number must be registered again for the new
+ * name to take effect, so we do that with the stored PIN; on rejection the client is alerted.
+ */
+async function handleNameUpdate(db: ReturnType<typeof supabaseAdmin>, wabaId: string | undefined, raw: unknown) {
+  const value = raw as Record<string, unknown> | undefined;
+  if (!wabaId || !value) return;
+  const decision = String(value.decision ?? "").toUpperCase();
+  const requested = typeof value.requested_verified_name === "string" ? value.requested_verified_name : null;
+  const shown = String(value.display_phone_number ?? "").replace(/\D/g, "");
+
+  const { data: accounts } = await db
+    .from("whatsapp_accounts")
+    .select("id, client_id, phone_number_id, access_token_encrypted, registration_pin_encrypted")
+    .eq("waba_id", wabaId);
+  if (!accounts?.length) return;
+
+  // Which number is it? Only needed when the WABA has several.
+  let account = accounts[0];
+  if (accounts.length > 1 && shown) {
+    for (const a of accounts) {
+      try {
+        const r = await fetch(`https://graph.facebook.com/${GRAPH}/${a.phone_number_id}?fields=display_phone_number`, {
+          headers: { Authorization: `Bearer ${decrypt(a.access_token_encrypted)}` },
+        });
+        const d = await r.json();
+        if (String(d.display_phone_number ?? "").replace(/\D/g, "") === shown) { account = a; break; }
+      } catch {}
+    }
+  }
+  const key = `display_name:${account.phone_number_id}`;
+
+  if (decision === "REJECTED") {
+    await raiseAlert({
+      clientId: account.client_id,
+      phoneNumberId: account.phone_number_id,
+      kind: "display_name",
+      severity: "warning",
+      title: "WhatsApp display name was not approved",
+      detail: `Meta didn't approve “${requested ?? "the new name"}”${value.rejection_reason ? ` (${String(value.rejection_reason)})` : ""}. Your previous name stays. Try a name that matches your business or website, from the dashboard.`,
+      key,
+    });
+    return;
+  }
+  if (decision !== "APPROVED") return;
+
+  // Approved: register again so the name goes live (the PIN is the one saved at connect time).
+  if (!account.registration_pin_encrypted) {
+    await raiseAlert({ clientId: account.client_id, phoneNumberId: account.phone_number_id, kind: "display_name", severity: "info", title: "Display name approved", detail: "Open the dashboard and press “Apply approved name” to make it live.", key });
+    return;
+  }
+  const reg = await registerPhoneNumber(account.phone_number_id, decrypt(account.access_token_encrypted), decrypt(account.registration_pin_encrypted));
+  if (reg.ok) {
+    if (requested) await db.from("whatsapp_accounts").update({ display_name: requested }).eq("id", account.id);
+    await resolveAlert(account.client_id, key);
+  } else {
+    await raiseAlert({ clientId: account.client_id, phoneNumberId: account.phone_number_id, kind: "display_name", severity: "info", title: "Display name approved", detail: "Open the dashboard and press “Apply approved name” to make it live. We couldn't do it automatically.", key });
+  }
 }
