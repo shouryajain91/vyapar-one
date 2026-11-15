@@ -19,6 +19,8 @@ async function handle(req: NextRequest) {
   // Retry any webhook events that failed or were left behind, then send campaigns.
   const webhooks = await processWebhookQueue(50).catch((e) => ({ error: String(e) }));
   await supabaseAdmin().rpc("cleanup_webhook_events");
+  await supabaseAdmin().rpc("cleanup_webhook_deliveries");
+  await supabaseAdmin().rpc("cleanup_api");
   const result = await runCampaignBatches(45_000);
   return NextResponse.json({ ok: true, webhooks, ...result });
 }

@@ -75,6 +75,7 @@ function SidebarContent() {
         <NavLink href="/feedback" icon={<Icon name="star" className="h-5 w-5" />}>Feedback</NavLink>
         <NavLink href="/alerts" icon={<Icon name="shield" className="h-5 w-5" />}>Alerts</NavLink>
         <NavLink href="/opt-outs" icon={<Icon name="ban" className="h-5 w-5" />}>Opt-outs</NavLink>
+        <NavLink href="/developers" icon={<Icon name="code" className="h-5 w-5" />}>Developers</NavLink>
         <Suspense fallback={null}>
           <AdminNav />
         </Suspense>

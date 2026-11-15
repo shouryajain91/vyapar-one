@@ -21,6 +21,7 @@ interface Recipient {
   client_id: string;
   phone: string;
   contact_name: string | null;
+  reference?: string | null;
   vars: RecipientVars;
 }
 
@@ -218,6 +219,7 @@ async function sendOne(
     body: rendered,
     template_name: tpl.name,
     campaign_id: camp.id,
+    reference: r.reference ?? null,
     raw_payload: payload,
   };
 

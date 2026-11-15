@@ -3,6 +3,7 @@ import { STATUS_RANK } from "@/lib/wa-errors";
 import { classifyOptMessage } from "@/lib/optout";
 import { maybeAutoReply } from "@/lib/bot-reply";
 import { raiseAlert, resolveAlert } from "@/lib/alerts";
+import { emitEvent, deliverWebhooks } from "@/lib/outbound-webhooks";
 
 export async function processPayload(payload: WhatsAppWebhookPayload) {
   const db = supabaseAdmin();
@@ -47,7 +48,7 @@ export async function processPayload(payload: WhatsAppWebhookPayload) {
         // Meta re-delivers webhooks; ignore a message we already stored.
         const { data: seen } = await db.from("messages").select("id").eq("wa_message_id", msg.id).eq("client_id", clientId).maybeSingle();
         if (seen) continue;
-        await db.from("messages").insert({
+        const { data: stored } = await db.from("messages").insert({
           client_id: clientId,
           wa_message_id: msg.id,
           direction: "inbound",
@@ -61,6 +62,18 @@ export async function processPayload(payload: WhatsAppWebhookPayload) {
           button_payload: msg.button?.payload ?? msg.interactive?.button_reply?.id ?? null,
           status: "received",
           raw_payload: msg,
+        }).select("id").single();
+
+        await emitEvent(clientId, phoneNumberId, "message.received", {
+          message_id: stored?.id ?? null,
+          wa_message_id: msg.id,
+          from: msg.from,
+          name: names.get(msg.from) ?? null,
+          type: msg.type,
+          text: extractBody(msg),
+          button_payload: msg.button?.payload ?? msg.interactive?.button_reply?.id ?? null,
+          reply_to_wa_id: msg.context?.id ?? null,
+          timestamp: msg.timestamp ? new Date(Number(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
         });
 
         // STOP / unsubscribe: remember it so this customer is excluded from sends.
@@ -106,7 +119,7 @@ export async function processPayload(payload: WhatsAppWebhookPayload) {
       for (const status of value.statuses ?? []) {
         const { data: row } = await db
           .from("messages")
-          .select("id, status")
+          .select("id, status, reference, to_number, template_name")
           .eq("wa_message_id", status.id)
           .eq("client_id", clientId)
           .maybeSingle();
@@ -145,6 +158,18 @@ export async function processPayload(payload: WhatsAppWebhookPayload) {
           }
         }
         if (Object.keys(update).length) await db.from("messages").update(update).eq("id", row.id);
+        if (update.status) {
+          await emitEvent(clientId, phoneNumberId, "message.status", {
+            message_id: row.id,
+            wa_message_id: status.id,
+            customer: row.to_number ?? status.recipient_id ?? null,
+            status: update.status,
+            reference: row.reference ?? null,
+            template: row.template_name ?? null,
+            error: update.status === "failed" ? { code: update.error_code ?? null, message: update.error_message ?? null } : null,
+            timestamp: at,
+          });
+        }
       }
     }
   }
@@ -233,6 +258,7 @@ export interface WhatsAppChangeValue {
     id: string;
     status: string;
     timestamp?: string;
+    recipient_id?: string;
     errors?: Array<{ code?: number; title?: string; message?: string; error_data?: { details?: string } }>;
   }>;
   // message_template_status_update fields
@@ -256,6 +282,7 @@ export interface WhatsAppInboundMessage {
   id: string;
   from: string;
   type: string;
+  timestamp?: string;
   text?: { body: string };
   context?: { id?: string };
   button?: { text: string; payload?: string };
@@ -297,5 +324,7 @@ export async function processWebhookQueue(limit = 20) {
     }
     if (events.length < limit) break;
   }
+  // Pass queued events on to clients' own servers.
+  await deliverWebhooks(30).catch((e) => console.error("webhook delivery run failed", e));
   return { done, failed };
 }
